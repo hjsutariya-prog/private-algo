@@ -1874,7 +1874,7 @@
     $("tradetron-strategy-status").textContent = linked ? `Strategy ${status.strategy_id}` : "Not linked";
     $("tradetron-delivery-status").textContent = status?.delivery === "verified" ? "Verified · paper delivery only" : status?.delivery === "unverified" ? "Not tested yet" : status?.delivery === "needs_relink" ? "Rejected · replace API link" : status?.delivery === "disabled" ? "Unavailable" : "Unavailable";
     $("tradetron-storage-status").textContent = status?.credential_storage_warning ? "Saved link needs attention" : linked && status.credentials_saved ? "Windows account protected" : "Not saved";
-    $("tradetron-runner-status").textContent = runner?.blocked ? "Blocked · review Tradetron" : runner?.armed ? "Armed · paper values only" : runner?.automatic_runner === "unavailable" ? "Off · automatic sending unavailable" : "Not checked";
+    $("tradetron-runner-status").textContent = runner?.legacy ? "Restart local app to load runner" : runner?.blocked ? "Blocked · review Tradetron" : runner?.armed ? "Armed · paper values only" : runner?.automatic_runner === "unavailable" ? "Off · automatic sending unavailable" : "Not checked";
     $("tradetron-configure").textContent = linked ? "Change executor link" : "Link paper executor";
     $("tradetron-configure").disabled = tradetron.busy || status?.credential_storage_available !== true;
     $("tradetron-forget").hidden = !linked && !status?.credential_storage_warning;
@@ -1887,9 +1887,15 @@
     renderTradetron();
     try {
       const response = await api("/api/tradetron/status");
-      if (!response.status || typeof response.status.linked !== "boolean" || !["unverified", "verified", "needs_relink", "disabled"].includes(response.status.delivery) || !response.runner || response.runner.mode !== "paper_only") throw new Error("The local app did not return a valid executor-link status.");
+      if (!response.status || typeof response.status.linked !== "boolean" || !["unverified", "verified", "needs_relink", "disabled"].includes(response.status.delivery)) throw new Error("The local app did not return a valid executor-link status.");
       tradetron.status = response.status;
-      tradetron.runner = response.runner;
+      // Static files can update before a local Python process is restarted.
+      // Keep the linked executor usable and explain that mixed-version state
+      // rather than reporting the protected link itself as unavailable.
+      tradetron.runner = response.runner?.mode === "paper_only" ? response.runner : {
+        mode: "paper_only", legacy: true, armed: false, blocked: false,
+        automatic_runner: "restart_required",
+      };
       showError("tradetron-error", "");
     } catch (error) {
       tradetron.status = null;
