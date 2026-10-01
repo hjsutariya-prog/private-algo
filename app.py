@@ -822,6 +822,16 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("Moving the legacy protected link requires its local confirmation.")
                 deployment_id = route.split("/")[3]
                 self._respond(200, {"deployment": self.server.deployment_runtimes.migrate_legacy(deployment_id, payload["confirmation"])})
+            elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/tradetron/paper-bootstrap"):
+                if payload != {"confirmation": PAPER_BOOTSTRAP_CONFIRMATION}:
+                    raise ValueError("This one-time paper check requires its exact local confirmation.")
+                snapshot = self.server.paper_replay.snapshot()
+                if not snapshot:
+                    raise ValueError("There is no saved four-leg September paper replay to check.")
+                deployment_id = route.split("/")[3]
+                result = self.server.deployment_runtimes.paper_bootstrap(deployment_id, snapshot)
+                self._respond(200, {**result,
+                                    "notice": "Tradetron received paper-test runtime values for this deployment. No Zerodha order was sent by this app."})
             elif self.command == "PATCH" and route.startswith("/api/strategies/"):
                 self._respond(200, {"strategy": self.server.store.update_strategy(route.rsplit("/", 1)[1], payload)})
             elif self.command == "POST" and route == "/api/scenarios/run":

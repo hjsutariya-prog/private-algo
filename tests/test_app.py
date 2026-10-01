@@ -253,6 +253,26 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIn("unlinked", repeated["error"])
 
+    def test_deployment_paper_bootstrap_uses_only_its_isolated_link(self):
+        strategy = self.request("POST", "/api/strategies", {"name": "Deployment bootstrap", "lots": 1, "capital": 100000})[1]["strategy"]
+        deployment = self.request("POST", "/api/deployments", {"strategy_id": strategy["id"]})[1]["deployment"]
+        fixture_token = "44444444-4444-4444-8444-444444444444"
+        fixture_link = "https://api.tradetron.tech/api?auth-token=" + fixture_token + "&key=api_buy&value=1"
+        self.request("POST", f"/api/deployments/{deployment['id']}/tradetron/link", {
+            "strategy_id": "999056854", "api_link": fixture_link, "remember": True,
+        })
+        with patch("deployment_runtime.dispatch_snapshot_entries", return_value={"mode": "paper_bootstrap_only"}) as dispatch, \
+                patch.object(self.server.paper_replay, "snapshot", return_value={"kind": "historical_paper_replay"}):
+            status, result, _ = self.request("POST", f"/api/deployments/{deployment['id']}/tradetron/paper-bootstrap", {
+                "confirmation": "paper-bootstrap-four-legs"
+            })
+        self.assertEqual(status, 200)
+        self.assertEqual(result["delivery"]["mode"], "paper_bootstrap_only")
+        self.assertEqual(result["deployment"]["state"], "paper_ready")
+        self.assertEqual(result["deployment"]["executor"]["delivery"], "verified")
+        self.assertEqual(dispatch.call_args.args[0]["strategy_id"], "999056854")
+        self.assertNotIn(fixture_token, json.dumps(result))
+
     def test_tradetron_link_exposes_locked_signal_contract_and_cannot_send_orders(self):
         fixture_token = "11111111-1111-4111-8111-111111111111"
         fixture_link = "https://api.tradetron.tech/api?auth-token=" + fixture_token + "&key=api_buy&value=1"
