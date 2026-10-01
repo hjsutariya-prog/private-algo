@@ -160,6 +160,16 @@
     // Historical and paper records must never populate a live deployment view.
     if (mode !== "paper") return [];
     const records=[];
+    for (const deployment of input?.state?.deployments || []) {
+      if (deployment?.mode !== "paper_only") continue;
+      records.push({
+        id:"saved-deployment:"+deployment.id, strategy:deployment.strategy_name || "BANKNIFTY strategy",
+        execution:"Paper", status:deployment.state === "not_linked" ? "Not linked · not running" : "Paper setup pending",
+        valuationAt:deployment.updated_at || deployment.created_at, multiplier:deployment.multiplier,
+        legs:[], pnl:null,
+        note:`Saved paper deployment · ${deployment.strategy_version || "version unavailable"}. Link its own Tradetron executor before it can receive signals.`,
+      });
+    }
     const historical=liveReplayView(input?.paper?.historical_replay,input,now);
     if (historical) {
       const snapshot=historical.snapshot;

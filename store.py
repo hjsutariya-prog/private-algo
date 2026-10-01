@@ -44,6 +44,14 @@ class Store:
                     id TEXT PRIMARY KEY, created_at TEXT NOT NULL, summary TEXT NOT NULL,
                     payload TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS deployments (
+                    id TEXT PRIMARY KEY, strategy_id TEXT NOT NULL,
+                    strategy_version TEXT NOT NULL, strategy_snapshot TEXT NOT NULL,
+                    mode TEXT NOT NULL, state TEXT NOT NULL,
+                    created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    UNIQUE(strategy_id, strategy_version),
+                    FOREIGN KEY(strategy_id) REFERENCES strategies(id)
+                );
             """)
             columns = {row[1] for row in db.execute("PRAGMA table_info(strategies)")}
             if "multiplier" not in columns:
@@ -83,6 +91,55 @@ class Store:
         if row is None:
             raise KeyError("Strategy not found.")
         return self._view(row)
+
+    @staticmethod
+    def _deployment_view(row):
+        result = dict(row)
+        snapshot = json.loads(result.pop("strategy_snapshot"))
+        result.update({
+            "mode": "paper_only", "state": result["state"], "strategy": snapshot,
+            "strategy_name": snapshot["name"], "lots": snapshot["lots"],
+            "multiplier": snapshot["multiplier"], "effective_lots": snapshot["effective_lots"],
+            "executor": {"linked": False, "status": "not_linked"},
+            "runner": {"status": "not_connected"},
+            "outbox": {"status": "not_created"},
+            "note": "Paper deployment record only. It has no linked executor and cannot send a Tradetron signal.",
+        })
+        return result
+
+    def list_deployments(self):
+        with self.connect() as db:
+            rows = db.execute("SELECT * FROM deployments ORDER BY created_at DESC, rowid DESC").fetchall()
+        return [self._deployment_view(row) for row in rows]
+
+    def get_deployment(self, deployment_id):
+        with self.connect() as db:
+            row = db.execute("SELECT * FROM deployments WHERE id=?", (deployment_id,)).fetchone()
+        if row is None:
+            raise KeyError("Deployment not found.")
+        return self._deployment_view(row)
+
+    def create_deployment(self, values):
+        """Freeze one draft version as a paper-only deployment record.
+
+        A deployment is deliberately not a Tradetron instruction. Linking an
+        executor and starting a runner are later, separate gated actions.
+        """
+        if not isinstance(values, dict) or set(values) != {"strategy_id"} or not isinstance(values["strategy_id"], str):
+            raise ValueError("Choose one saved strategy draft for the paper deployment.")
+        strategy = self.get_strategy(values["strategy_id"])
+        snapshot = {key: strategy[key] for key in ("id", "name", "lots", "multiplier", "effective_lots", "capital", "rules", "version")}
+        identity, now = uuid4().hex, timestamp()
+        try:
+            with self.connect() as db:
+                db.execute("""
+                    INSERT INTO deployments (id,strategy_id,strategy_version,strategy_snapshot,mode,state,created_at,updated_at)
+                    VALUES (?, ?, ?, ?, 'paper_only', 'not_linked', ?, ?)
+                """, (identity, strategy["id"], strategy["version"],
+                      json.dumps(snapshot, sort_keys=True, ensure_ascii=False, separators=(",", ":")), now, now))
+        except sqlite3.IntegrityError as exc:
+            raise ValueError("This exact strategy version already has a paper deployment. Edit the draft first to create a separate deployment version.") from exc
+        return self.get_deployment(identity)
 
     def validate(self, values):
         if not isinstance(values, dict) or set(values) - {"name", "lots", "multiplier", "capital"}:

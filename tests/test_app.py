@@ -60,6 +60,18 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(len(reopened.list_strategies()), 2)
         self.assertEqual(reopened.list_strategies()[1]["name"], "Saved draft")
 
+    def test_paper_deployment_freezes_one_draft_version_and_stays_unlinked(self):
+        draft = self.store.list_strategies()[0]
+        deployment = self.store.create_deployment({"strategy_id": draft["id"]})
+        self.assertEqual((deployment["mode"], deployment["state"], deployment["strategy_version"]), ("paper_only", "not_linked", draft["version"]))
+        self.assertFalse(deployment["executor"]["linked"])
+        with self.assertRaises(ValueError):
+            self.store.create_deployment({"strategy_id": draft["id"]})
+        changed = self.store.update_strategy(draft["id"], {"lots": 2})
+        self.assertNotEqual(deployment["strategy_version"], changed["version"])
+        self.assertEqual(self.store.get_deployment(deployment["id"])["lots"], 1)
+        self.assertEqual(self.store.create_deployment({"strategy_id": draft["id"]})["strategy_version"], changed["version"])
+
     def test_no_live_status_or_credentials_can_be_saved(self):
         draft = self.store.list_strategies()[0]
         for body in [{"status": "live"}, {"api_secret": "not-a-real-key"}, {"live_enabled": True}]:
@@ -162,6 +174,21 @@ class ApiTests(unittest.TestCase):
     def test_live_endpoint_does_not_exist(self):
         status, _, _ = self.request("POST", "/api/orders", {"side": "BUY"})
         self.assertEqual(status, 404)
+
+    def test_paper_deployment_api_is_versioned_and_never_creates_an_order(self):
+        _, state, _ = self.request("GET", "/api/state")
+        strategy = state["strategies"][0]
+        status, created, _ = self.request("POST", "/api/deployments", {"strategy_id": strategy["id"]})
+        self.assertEqual(status, 201)
+        deployment = created["deployment"]
+        self.assertEqual((deployment["mode"], deployment["state"], deployment["strategy_version"]),
+                         ("paper_only", "not_linked", strategy["version"]))
+        self.assertFalse(deployment["executor"]["linked"])
+        status, saved, _ = self.request("GET", "/api/deployments")
+        self.assertEqual(status, 200)
+        self.assertEqual(saved["deployments"][0]["id"], deployment["id"])
+        status, _, _ = self.request("POST", "/api/deployments", {"strategy_id": strategy["id"]})
+        self.assertEqual(status, 400)
 
     def test_tradetron_link_exposes_locked_signal_contract_and_cannot_send_orders(self):
         fixture_token = "11111111-1111-4111-8111-111111111111"

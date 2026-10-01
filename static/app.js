@@ -2,7 +2,7 @@
 
 (() => {
   const $ = (id) => document.getElementById(id);
-  const state = { strategies: [], scenario_catalog: [], recent_runs: [] };
+  const state = { strategies: [], deployments: [], scenario_catalog: [], recent_runs: [] };
   const kite = { status: null, instruments: null, quote: null, busy: false, expiryTimer: null };
   const tradetron = { status: null, runner: null, busy: false };
   const replay = { busy: false, version: 0, jobId: null, progress: null, cancelRequested: false, cancelSent: false, settingsKey: null };
@@ -276,6 +276,9 @@
     $("detail-phase").textContent = strategy.phase ? friendly(strategy.phase) : "Draft";
     $("detail-updated").textContent += ` IST · ${strategy.version || "Version not recorded"}`;
     $("detail-summary").textContent = "Fixed hourly BANKNIFTY rules · 500-point spot stop · 1,000-point spot target · monthly hedge rollover. This draft is not deployed.";
+    const existingDeployment = state.deployments.some((deployment) => deployment.strategy_id === strategy.id && deployment.strategy_version === strategy.version);
+    $("deploy-strategy").disabled = saving || existingDeployment;
+    $("deploy-strategy").textContent = existingDeployment ? "Paper deployment created" : "Create paper deployment";
     $("scenario-strategy").textContent = `Checking: ${strategy.name}`;
     renderRules(strategy);
     updateControls();
@@ -314,6 +317,7 @@
     $("run-check").textContent = running ? "Checking…" : "Run check";
     $("create-strategy").disabled = saving;
     $("edit-strategy").disabled = saving || !selectedStrategy();
+    $("deploy-strategy").disabled = saving || !selectedStrategy() || state.deployments.some((deployment) => deployment.strategy_id === selectedId && deployment.strategy_version === selectedStrategy()?.version);
   }
 
   function clearResult() {
@@ -418,6 +422,7 @@
     const body = await api("/api/state");
     if (body.mode !== "offline" || body.live_enabled !== false) throw new Error("This page expects an offline-only app. It has stopped loading because the app’s safety settings do not match.");
     state.strategies = Array.isArray(body.strategies) ? body.strategies : [];
+    state.deployments = Array.isArray(body.deployments) ? body.deployments : [];
     state.scenario_catalog = Array.isArray(body.scenario_catalog) ? body.scenario_catalog : [];
     state.recent_runs = Array.isArray(body.recent_runs) ? body.recent_runs : [];
     if (!state.strategies.some((item) => item.id === selectedId)) selectedId = state.strategies.slice().sort((a,b) => Date.parse(b.updated_at || b.created_at) - Date.parse(a.updated_at || a.created_at))[0]?.id || null;
@@ -2261,6 +2266,19 @@
   $("create-strategy").addEventListener("click", () => openForm());
   $("create-first-strategy").addEventListener("click", () => openForm());
   $("edit-strategy").addEventListener("click", () => { if (selectedStrategy()) openForm(selectedStrategy()); });
+  $("deploy-strategy").addEventListener("click", async () => {
+    const strategy = selectedStrategy();
+    if (!strategy || saving) return;
+    saving = true; updateControls(); showError("deployment-create-error", "");
+    try {
+      const response = await api("/api/deployments", {method: "POST", body: JSON.stringify({strategy_id: strategy.id})});
+      if (!response.deployment?.id || response.deployment.mode !== "paper_only") throw new Error("The app did not confirm the paper deployment record.");
+      await loadState();
+      announce("Paper deployment record created. It is not linked, running, or able to send a Tradetron signal.");
+      window.location.hash = "#deployments";
+    } catch (error) { showError("deployment-create-error", error.message); }
+    finally { saving = false; updateControls(); }
+  });
   $("close-dialog").addEventListener("click", closeForm);
   $("cancel-dialog").addEventListener("click", closeForm);
   $("strategy-dialog").addEventListener("cancel", (event) => { if (saving) event.preventDefault(); });

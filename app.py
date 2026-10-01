@@ -751,6 +751,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._respond(200, {"mode": "offline", "live_enabled": False,
                                      "broker": {"name": "Zerodha", "connected": self.server.kite.status(self.server.server_address[1])["connected"]},
                                      "strategies": strategies,
+                                     "deployments": self.server.store.list_deployments(),
                                      "scenario_catalog": CATALOG,
                                      "recent_runs": self.server.store.recent_runs()})
             elif route == "/api/kite/status":
@@ -774,6 +775,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._respond(200, {"job": self.server.kite.replay_job_status(route.rsplit("/", 1)[1])})
             elif route == "/api/backtests":
                 self._respond(200, {"backtests": self.server.store.recent_backtests()})
+            elif route == "/api/deployments":
+                self._respond(200, {"deployments": self.server.store.list_deployments()})
             elif route.startswith("/api/backtests/"):
                 self._respond(200, {"backtest": self.server.store.get_backtest(route.rsplit("/", 1)[1])})
             elif route.startswith("/api/runs/"):
@@ -801,6 +804,8 @@ class Handler(BaseHTTPRequestHandler):
             payload = self._body()
             if self.command == "POST" and route == "/api/strategies":
                 self._respond(201, {"strategy": self.server.store.create_strategy(payload)})
+            elif self.command == "POST" and route == "/api/deployments":
+                self._respond(201, {"deployment": self.server.store.create_deployment(payload)})
             elif self.command == "PATCH" and route.startswith("/api/strategies/"):
                 self._respond(200, {"strategy": self.server.store.update_strategy(route.rsplit("/", 1)[1], payload)})
             elif self.command == "POST" and route == "/api/scenarios/run":
