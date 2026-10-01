@@ -220,6 +220,16 @@
       <div class="dialog-actions"><button class="button secondary" id="tradetron-cancel-dialog" type="button">Cancel</button><button class="button primary" id="tradetron-save-config" type="submit">Save protected link</button></div>
     </form>
   </dialog>
+  <dialog id="tradetron-import-dialog" aria-labelledby="tradetron-import-title" aria-describedby="tradetron-import-description">
+    <form id="tradetron-import-form" autocomplete="off">
+      <div class="dialog-heading"><div><p class="eyebrow">TRADETRON READ-BACK</p><h2 id="tradetron-import-title">Import deployment data</h2></div><button class="icon-button" id="tradetron-import-close" type="button" aria-label="Close Tradetron import">×</button></div>
+      <p id="tradetron-import-description" class="section-description">In Tradetron, open this deployment’s three-dot menu and choose Download data. Open the CSV, copy everything, then paste it below.</p>
+      <div class="credential-note">This is an official Tradetron export, imported into this local app. It is not a direct API read, broker confirmation, or permission to send another signal.</div>
+      <div class="field"><label for="tradetron-import-csv">Tradetron Download data CSV</label><textarea id="tradetron-import-csv" name="csv" required maxlength="250000" rows="10" spellcheck="false" aria-describedby="tradetron-import-hint" placeholder="id,broker,order_id,exchange,Instrument,..."></textarea><p id="tradetron-import-hint" class="field-hint">The export has option names, buy/sell sides, quantities and reported prices. It does not contain a complete live P&amp;L or broker-fill confirmation.</p></div>
+      <div id="tradetron-import-error" class="notice error" role="alert" hidden></div>
+      <div class="dialog-actions"><button class="button secondary" id="tradetron-import-cancel" type="button">Cancel</button><button class="button primary" id="tradetron-import-save" type="submit">Import local copy</button></div>
+    </form>
+  </dialog>
   <dialog id="runtime-data-dialog" class="runtime-dialog" aria-labelledby="runtime-data-title" aria-describedby="runtime-data-description">
     <div class="dialog-heading"><div><p class="eyebrow">LOCAL RUNTIME VIEW</p><h2 id="runtime-data-title">Runtime data</h2></div><button class="icon-button" id="runtime-data-close" type="button" aria-label="Close runtime data">×</button></div>
     <p id="runtime-data-description" class="section-description"></p>

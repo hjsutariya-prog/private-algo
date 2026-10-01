@@ -202,6 +202,17 @@ class ApiTests(unittest.TestCase):
         status, _, _ = self.request("POST", "/api/deployments", {"strategy_id": strategy["id"]})
         self.assertEqual(status, 400)
 
+    def test_tradetron_export_import_is_local_readback_not_a_broker_fill(self):
+        strategy = self.request("POST", "/api/strategies", {"name": "Tradetron CSV import", "lots": 1, "capital": 100000})[1]["strategy"]
+        deployment = self.request("POST", "/api/deployments", {"strategy_id": strategy["id"]})[1]["deployment"]
+        header = "id,broker,order_id,exchange,Instrument,underlying,expiry,instrument_type,execution_type,strike,option_type,txn_type,condition_type,condition_category,entry_date,entry_time,quantity,quantity_pending,price,underlying_price,atm_strike,amount,type_of_position,itm_otm,condition_parent_id,condition_id,leg_id,run_counter,cmd,created_at,product\n"
+        status, imported, _ = self.request("POST", f"/api/deployments/{deployment['id']}/tradetron/import", {"csv": header})
+        self.assertEqual(status, 200)
+        readback = imported["deployment"]["tradetron_readback"]
+        self.assertEqual((readback["status"], readback["rows"]), ("imported", 0))
+        self.assertIn("did not confirm", imported["notice"])
+        self.assertFalse(imported["deployment"]["runner"]["armed"])
+
     def test_each_paper_deployment_has_an_isolated_executor_and_outbox(self):
         first = self.request("POST", "/api/strategies", {"name": "Executor isolation A", "lots": 1, "capital": 100000})[1]["strategy"]
         second = self.request("POST", "/api/strategies", {"name": "Executor isolation B", "lots": 1, "capital": 100000})[1]["strategy"]

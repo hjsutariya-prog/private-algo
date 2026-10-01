@@ -6,6 +6,7 @@
   const kite = { status: null, instruments: null, quote: null, busy: false, expiryTimer: null };
   const tradetron = { status: null, runner: null, busy: false };
   let activeDeploymentId = null;
+  let importDeploymentId = null;
   const replay = { busy: false, version: 0, jobId: null, progress: null, cancelRequested: false, cancelSent: false, settingsKey: null };
   let selectedId = null;
   let editingId = null;
@@ -2035,6 +2036,43 @@
       announce("Older Tradetron link moved into this bridge. Automatic sending remains off.");
     } catch (error) { showError("page-error", error.message); }
     finally { tradetron.busy = false; renderTradetron(); renderJourney(); }
+  });
+  function closeTradetronImport() {
+    $("tradetron-import-csv").value = "";
+    showError("tradetron-import-error", "");
+    if (!tradetron.busy) { $("tradetron-import-dialog").close(); importDeploymentId = null; }
+  }
+  window.addEventListener("deployment-import", (event) => {
+    const deployment = state.deployments.find((item) => item.id === event.detail?.id);
+    if (!deployment || tradetron.busy) return;
+    importDeploymentId = deployment.id;
+    $("tradetron-import-title").textContent = `Import ${deployment.strategy_name || "Tradetron"} data`;
+    $("tradetron-import-csv").value = "";
+    showError("tradetron-import-error", "");
+    $("tradetron-import-save").disabled = false;
+    $("tradetron-import-dialog").showModal();
+    $("tradetron-import-csv").focus();
+  });
+  $("tradetron-import-close").addEventListener("click", closeTradetronImport);
+  $("tradetron-import-cancel").addEventListener("click", closeTradetronImport);
+  $("tradetron-import-dialog").addEventListener("cancel", (event) => { if (tradetron.busy) event.preventDefault(); else closeTradetronImport(); });
+  $("tradetron-import-dialog").addEventListener("close", () => { $("tradetron-import-csv").value = ""; importDeploymentId = null; });
+  $("tradetron-import-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const csv = $("tradetron-import-csv").value;
+    if (tradetron.busy || !importDeploymentId || !csv.trim()) return;
+    tradetron.busy = true;
+    $("tradetron-import-save").disabled = true;
+    $("tradetron-import-save").textContent = "Importing…";
+    showError("tradetron-import-error", "");
+    try {
+      const response = await api(`/api/deployments/${encodeURIComponent(importDeploymentId)}/tradetron/import`, {method:"POST",body:JSON.stringify({csv})});
+      if (response.deployment?.tradetron_readback?.status !== "imported") throw new Error("The local app did not retain the Tradetron export.");
+      await loadState();
+      $("tradetron-import-dialog").close();
+      announce("Tradetron data imported as a local copy. Pending signals still need explicit review.");
+    } catch (error) { showError("tradetron-import-error", error.message); }
+    finally { tradetron.busy = false; $("tradetron-import-save").disabled = false; $("tradetron-import-save").textContent = "Import local copy"; }
   });
   window.addEventListener("deployment-view-strategy", (event) => {
     const strategy = state.strategies.find((item) => item.id === event.detail?.strategyId);

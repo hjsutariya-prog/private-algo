@@ -165,6 +165,7 @@
       const executor=deployment.executor || {};
       const runner=deployment.runner || {};
       const bridge=deployment.bridge || {};
+      const readback=deployment.tradetron_readback || {status:"not_imported"};
       const linked=executor.linked === true;
       const connection=linked
         ? deployment.state === "paper_ready" && executor.delivery === "verified" ? "Connected & tested"
@@ -199,8 +200,10 @@
         valuationAt:deployment.updated_at || deployment.created_at, multiplier:deployment.multiplier,
         legs:[], pnl:null,
         deploymentId:deployment.id, deploymentState:deployment.state, executor, runner,
+        readback,
         note:linked
-          ? automatic === "waiting_for_confirmation" ? "Tradetron accepted a runtime update. Confirm its matching paper execution before another signal can be sent."
+          ? readback.status === "imported" ? `Tradetron export imported ${when(readback.imported_at)} · ${readback.rows || 0} reported rows. It is a local copy, not an API confirmation.`
+            : automatic === "waiting_for_confirmation" ? "Tradetron accepted a runtime update. Confirm its matching paper execution before another signal can be sent."
             : automatic === "blocked" ? runner.strategy?.message || "This bridge stopped safely. Review Tradetron before resuming."
             : connectionNote
           : "Connect Tradetron to complete this bridge.",
@@ -607,6 +610,10 @@
       linkTradetron.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-link",{detail:{id:record.deploymentId}})));
       actions.append(linkTradetron);
       if(linked) {
+        const importData=node("button","Import Tradetron data","menu-action");
+        importData.type="button";
+        importData.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-import",{detail:{id:record.deploymentId}})));
+        actions.append(importData);
         const disconnect=node("button","Disconnect bridge","menu-action");
         disconnect.type="button";
         disconnect.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-disconnect",{detail:{id:record.deploymentId}})));
@@ -646,8 +653,21 @@
     connection.classList.add("deployment-connection");
     const next=detail("Signal sending",record.nextStep || "Off");
     next.classList.add("deployment-next");
-    facts.append(connection,next,detail("Signal size",`${record.bridge?.signal_lots || 1} lot`),detail("Tradetron multiplier","Managed in Tradetron"));
+    const imported=record.readback?.status === "imported";
+    facts.append(connection,next,detail("Signal size",`${record.bridge?.signal_lots || 1} lot`),detail("Tradetron multiplier","Managed in Tradetron"),detail("Tradetron data",imported ? `Imported ${when(record.readback.imported_at)}` : "Not imported",imported ? `${record.readback.rows || 0} reported rows · local copy` : "Use Download data in Tradetron, then import the CSV."));
     n.append(head,facts);
+    if(imported) {
+      const positions=Array.isArray(record.readback?.net_positions) ? record.readback.net_positions : [];
+      if(positions.length) {
+        const rows=positions.map(position=>{
+          const row=node("tr");
+          row.append(deskCell("Option name",position.instrument || "Instrument unavailable"),deskCell("Net quantity",finite(position.net_quantity) ? position.net_quantity.toLocaleString("en-IN") : "Unavailable"),deskCell("Reported price",money(position.reported_price)),deskCell("Pending",finite(position.pending_quantity) ? position.pending_quantity.toLocaleString("en-IN") : "Unavailable"));
+          return row;
+        });
+        n.append(deskTable(`${record.strategy} imported Tradetron positions`,["Option name","Net quantity","Reported price","Pending"],rows,"desk-leg-table deployment-leg-table"));
+      } else n.append(node("p","The imported Tradetron export has no net option positions.","essential-note"));
+      n.append(node("p","Reported price is from the export. Tradetron’s file does not supply a complete live P&L or broker-fill proof.","essential-note"));
+    }
     if (record.legs.length) {
       const rows=record.legs.map(leg=>{
         const row=node("tr");
@@ -697,7 +717,7 @@
     // it out of the deployment setup screen so users never confuse its marks
     // with a Tradetron connection or a paper order.
     const paperDeployments=deployments.filter(record=>record.deploymentId);
-    const key=JSON.stringify([mode,v.active,v.current,v.protection,v.pricesFresh,v.orders,v.groups.map(g=>[g.key,g.protection,g.pnl,g.legs.map(l=>[l.entry,l.mark,l.basis])]),deployments.map(d=>[d.id,d.status,d.nextStep,d.note,d.runner?.automatic_runner,d.runner?.strategy?.message,d.valuationAt,d.multiplier,d.pnl,d.legs.map(l=>[l.mark,l.pnl,l.liveMark])]),v.issues,v.activity,v.drafts,input.paper?.historical_replay,input.live?.account,input.tradetron?.linked,input.tradetron?.delivery,input.tradetron?.strategy_id]);
+    const key=JSON.stringify([mode,v.active,v.current,v.protection,v.pricesFresh,v.orders,v.groups.map(g=>[g.key,g.protection,g.pnl,g.legs.map(l=>[l.entry,l.mark,l.basis])]),deployments.map(d=>[d.id,d.status,d.nextStep,d.note,d.runner?.automatic_runner,d.runner?.strategy?.message,d.valuationAt,d.multiplier,d.pnl,d.readback?.status,d.readback?.imported_at,d.readback?.rows,d.readback?.net_positions,d.legs.map(l=>[l.mark,l.pnl,l.liveMark])]),v.issues,v.activity,v.drafts,input.paper?.historical_replay,input.live?.account,input.tradetron?.linked,input.tradetron?.delivery,input.tradetron?.strategy_id]);
     if(key === lastKey)return; lastKey=key;
     const expanded=new Set([...document.querySelectorAll("details[data-group][open]")].map(n=>n.dataset.group));
     const focusedGroup=document.activeElement?.tagName === "SUMMARY" ? document.activeElement.closest("details[data-group]")?.dataset.group : null;

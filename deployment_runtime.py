@@ -6,6 +6,7 @@ from tradetron_delivery import dispatch_snapshot_entries
 from tradetron_link import TradetronLinkState, TradetronLinkStore
 from tradetron_runtime import ARMING_CONFIRMATION, TradetronSignalRuntime
 from live_strategy_runner import PaperStrategyRunner, RUNNER_CONFIRMATION
+from tradetron_readback import TradetronReadbackStore
 
 
 MIGRATION_CONFIRMATION = "move-legacy-paper-link"
@@ -16,7 +17,7 @@ class DeploymentRuntimeRegistry:
         self.store = store
         self.root = Path(root)
         self.legacy_link = legacy_link
-        self._items: dict[str, tuple[TradetronLinkState, TradetronSignalRuntime, PaperStrategyRunner]] = {}
+        self._items: dict[str, tuple[TradetronLinkState, TradetronSignalRuntime, PaperStrategyRunner, TradetronReadbackStore]] = {}
         self.market = None
 
     def _item(self, deployment_id: str):
@@ -29,7 +30,8 @@ class DeploymentRuntimeRegistry:
             link = TradetronLinkState(TradetronLinkStore(base.with_suffix(".tradetron.dpapi"), protection))
             sender = TradetronSignalRuntime(link, base.with_suffix(".tradetron-events.sqlite3"))
             runner = PaperStrategyRunner(deployment_id, sender, base.with_suffix(".strategy-runner.sqlite3"))
-            self._items[deployment_id] = (link, sender, runner)
+            readback = TradetronReadbackStore(base.with_suffix(".tradetron-readback.sqlite3"))
+            self._items[deployment_id] = (link, sender, runner, readback)
         return self._items[deployment_id]
 
     def set_market(self, market) -> None:
@@ -37,7 +39,7 @@ class DeploymentRuntimeRegistry:
         self.market = market
 
     def describe(self, deployment: dict[str, Any]) -> dict[str, Any]:
-        link, sender, runner = self._item(deployment["id"])
+        link, sender, runner, readback = self._item(deployment["id"])
         # `paper_ready` is set only after the guarded paper delivery succeeds.
         # The protected link is loaded afresh after a local-service restart, so
         # restore the delivery badge from that saved deployment state.
@@ -47,6 +49,7 @@ class DeploymentRuntimeRegistry:
         result["executor"] = link.status()
         result["runner"] = {**sender.status(), "automatic_runner": runner.status()["automatic_runner"],
                             "strategy": runner.status()}
+        result["tradetron_readback"] = readback.status()
         # The bridge deliberately carries no quantity or multiplier.  Every
         # event represents one base lot; Tradetron's deployment multiplier is
         # the only scaling authority for its Live Offline paper trades.
@@ -62,7 +65,7 @@ class DeploymentRuntimeRegistry:
 
     def configure(self, deployment_id: str, payload: dict[str, Any]):
         self.store.get_deployment(deployment_id)
-        link, sender, runner = self._item(deployment_id)
+        link, sender, runner, _readback = self._item(deployment_id)
         runner.pause("Automatic paper signals were paused because the Tradetron link changed.")
         sender.disarm()
         link.configure(payload)
@@ -71,7 +74,7 @@ class DeploymentRuntimeRegistry:
 
     def disconnect(self, deployment_id: str):
         self.store.get_deployment(deployment_id)
-        link, sender, runner = self._item(deployment_id)
+        link, sender, runner, _readback = self._item(deployment_id)
         runner.pause("Automatic paper signals were paused because the Tradetron bridge was disconnected.")
         sender.disarm()
         link.clear()
@@ -86,7 +89,7 @@ class DeploymentRuntimeRegistry:
             raise ValueError("Move the older link only into an unlinked Tradetron bridge.")
         if not self.legacy_link.details:
             raise ValueError("There is no legacy protected Tradetron link to move.")
-        link, _sender, runner = self._item(deployment_id)
+        link, _sender, runner, _readback = self._item(deployment_id)
         if link.details:
             raise ValueError("This deployment already has its own protected executor link.")
         # Save the destination first. If removal fails, best-effort cleanup
@@ -114,7 +117,7 @@ class DeploymentRuntimeRegistry:
         deployment and never calls a broker-order route.
         """
         deployment = self.store.get_deployment(deployment_id)
-        link, sender, runner = self._item(deployment_id)
+        link, sender, runner, _readback = self._item(deployment_id)
         if sender.armed or runner.enabled:
             raise ValueError("Disarm the paper signal runner before the one-time delivery check.")
         if not link.details or not link.saved:
@@ -136,7 +139,7 @@ class DeploymentRuntimeRegistry:
         if self.market is None:
             raise ValueError("The local price service is unavailable. Start it during a verified market session first.")
         self.market.strategy_runner_ready()
-        _link, sender, runner = self._item(deployment_id)
+        _link, sender, runner, _readback = self._item(deployment_id)
         sender.arm(ARMING_CONFIRMATION)
         try:
             runner.start(confirmation)
@@ -148,7 +151,7 @@ class DeploymentRuntimeRegistry:
 
     def pause_runner(self, deployment_id: str):
         deployment = self.store.get_deployment(deployment_id)
-        _link, sender, runner = self._item(deployment_id)
+        _link, sender, runner, _readback = self._item(deployment_id)
         runner.pause()
         sender.disarm()
         if deployment["state"] == "paper_running":
@@ -157,9 +160,16 @@ class DeploymentRuntimeRegistry:
 
     def confirm_runner_event(self, deployment_id: str, event_id: str):
         deployment = self.store.get_deployment(deployment_id)
-        _link, _sender, runner = self._item(deployment_id)
+        _link, _sender, runner, _readback = self._item(deployment_id)
         runner.confirm(event_id)
         return self.describe(self.store.get_deployment(deployment_id))
+
+    def import_readback(self, deployment_id: str, csv_text: str):
+        """Retain a user-exported Tradetron snapshot without treating it as a fill."""
+        deployment = self.store.get_deployment(deployment_id)
+        _link, _sender, _runner, readback = self._item(deployment_id)
+        readback.import_csv(csv_text)
+        return self.describe(deployment)
 
     def observe_spot(self, quote: dict[str, Any], market) -> None:
         """Fan the same fresh spot observation to independently linked bridges.
@@ -171,7 +181,7 @@ class DeploymentRuntimeRegistry:
         for deployment in self.store.list_deployments():
             if deployment.get("state") != "paper_running":
                 continue
-            _link, _sender, runner = self._item(deployment["id"])
+            _link, _sender, runner, _readback = self._item(deployment["id"])
             status = runner.observe(market, quote)
             if status.get("blocked"):
                 self.store.set_deployment_state(deployment["id"], "blocked")

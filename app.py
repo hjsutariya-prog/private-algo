@@ -814,6 +814,12 @@ class Handler(BaseHTTPRequestHandler):
             elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/tradetron/link"):
                 deployment_id = route.split("/")[3]
                 self._respond(200, {"deployment": self.server.deployment_runtimes.configure(deployment_id, payload)})
+            elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/tradetron/import"):
+                if set(payload) != {"csv"} or not isinstance(payload["csv"], str):
+                    raise ValueError("Paste the full Tradetron Download data CSV.")
+                deployment_id = route.split("/")[3]
+                self._respond(200, {"deployment": self.server.deployment_runtimes.import_readback(deployment_id, payload["csv"]),
+                                    "notice": "Tradetron data was imported locally. It did not confirm a broker fill or a pending portal signal."})
             elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/tradetron/disconnect"):
                 if payload:
                     raise ValueError("Disconnecting a Tradetron bridge does not take settings.")

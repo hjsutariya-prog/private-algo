@@ -48,6 +48,8 @@ Latest pricing update: recorded option observations now take precedence over est
 - [x] Record deployment lifecycle states without claiming that linking starts a runner or enables live trading.
 - [x] Build the paper-only 09:15-anchored BANKNIFTY signal producer: fixed close-based 500/1,000-point risk, independent CE/PE state, 500-point strike selection, next-month hedge rollover and duplicate-event protection.
 - [x] Keep every Tradetron runtime update fail-closed until its matching paper execution is manually confirmed; an API acknowledgement is never treated as a fill.
+- [x] Import each deployment's official Tradetron **Download data** CSV into an isolated local read-back record, showing reported option names, sides, quantities and prices without claiming a fill or live P&L.
+- [ ] Automatic Tradetron fill/position/P&L read-back remains unavailable: the published Tradetron API accepts runtime values but does not document a corresponding read endpoint. Do not scrape browser cookies or internal web routes as a substitute.
 - [ ] Connect and validate an autonomous strategy runner across complete sessions, rollover and reconnects before declaring deployment readiness.
 
 ## Evidence from this implementation
