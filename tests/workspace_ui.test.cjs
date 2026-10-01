@@ -26,9 +26,9 @@ class Element {
 function environment(hash = '#main') {
   const roots = new Map();
   const $ = (id) => { if (!roots.has(id)) roots.set(id, new Element()); return roots.get(id); };
-  const hashes = ['#main', '#strategies-heading', '#deployments', '#paper-trading', '#research', '#kite-connection', '#positions-orders', '#activity'];
+  const hashes = ['#main', '#strategies-heading', '#deployments', '#paper-trading', '#research', '#kite-connection', '#positions-orders'];
   const links = hashes.map((href) => { const link = new Element('a'); link.setAttribute('href', href); return link; });
-  const views = ['overview', 'strategies', 'deployments', 'backtests', 'market-data', 'safety-checks', 'paper-trading', 'research', 'positions', 'activity'].map((view) => {
+  const views = ['overview', 'strategies', 'deployments', 'backtests', 'market-data', 'safety-checks', 'paper-trading', 'research', 'positions'].map((view) => {
     const node = new Element('section'); node.dataset.view = view; return node;
   });
   const docEvents = {}, winEvents = {}, historyCalls = [];
@@ -50,11 +50,11 @@ test('every route synchronises the view, sidebar, breadcrumb and page title', ()
     ['#main','overview','Trading desk'], ['#strategies-heading','strategies','Strategies'],
     ['#deployments','deployments','Tradetron bridge'],
     ['#past-data-check','backtests','Model simulator'], ['#kite-connection','market-data','Connections'], ['#safety-checks','safety-checks','Order checks'], ['#paper-trading','paper-trading','Paper trading'],
-    ['#research','research','Research'], ['#positions-orders','positions','Positions & orders'], ['#activity','activity','Activity'],
+    ['#research','research','Research'], ['#positions-orders','positions','Positions & orders'], ['#activity','positions','Positions & orders'],
   ]) {
     e.window.location.hash = hash; e.context.updateNavigation();
     assert.deepEqual(e.views.filter(v => !v.hidden).map(v => v.dataset.view), [view]);
-    const nav={'#past-data-check':'#research','#safety-checks':'#research'}[hash] || hash;
+    const nav={'#past-data-check':'#research','#safety-checks':'#research','#activity':'#positions-orders'}[hash] || hash;
     assert.deepEqual(e.links.filter(l => l.getAttribute('aria-current')).map(l => l.getAttribute('href')), [nav]);
     assert.equal(e.$('page-title').textContent, title); assert.equal(e.$('page-location').textContent, title);
     assert.equal(e.document.title, title + ' · Private Algo Desk');

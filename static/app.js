@@ -1850,8 +1850,6 @@
     if (quote && quoteFreshness(quote).startsWith("Recent")) wakeAt.push(Date.parse(quote.timestamp) + 120020);
     if (wakeAt.length) kite.expiryTimer = window.setTimeout(renderKite, Math.min(Math.max(Math.min(...wakeAt) - Date.now(), 20), 86400000));
     renderReplayAvailability();
-    const detailQuantityNote = $("detail-quantity-note");
-    if (selectedStrategy() && detailQuantityNote) detailQuantityNote.textContent = draftQuantityNote(selectedStrategy().lots, kite.instruments);
     updateDraftQuantity();
   }
 
@@ -2038,13 +2036,13 @@
     } catch (error) { showError("page-error", error.message); }
     finally { tradetron.busy = false; renderTradetron(); renderJourney(); }
   });
-  window.addEventListener("deployment-edit-size", (event) => {
+  window.addEventListener("deployment-view-strategy", (event) => {
     const strategy = state.strategies.find((item) => item.id === event.detail?.strategyId);
     if (!strategy) return;
     selectStrategy(strategy.id);
     window.history.pushState(null, "", window.location.pathname + window.location.search + "#strategy-detail");
     updateNavigation({ focus: true });
-    announce("Edit local-paper base lots and multiplier. Saving creates a new strategy version; the Tradetron bridge still sends one lot.");
+    announce("Strategy opened. Local-paper size is separate from the Tradetron bridge, which still sends one lot.");
   });
 
   function clearKiteInputs() { $("kite-api-key").value = ""; $("kite-api-secret").value = ""; }
@@ -2495,13 +2493,13 @@
   });
 
   const workspaceRoutes = {
-    "#main": { view: "overview", title: "Trading desk", description: "Protection, exposure and anything that needs your attention." },
+    "#main": { view: "overview", title: "Trading desk", description: "Your quick check for problems, price readiness and bridge status." },
     "#strategies-heading": { view: "strategies", title: "Strategies", description: "Save BANKNIFTY rules and local-paper sizing. A Tradetron bridge uses the rules but always sends one lot." },
     "#strategy-detail": { view: "strategies", title: "Strategy draft", nav: "#strategies-heading", description: "Fixed rules and saved sizing for this draft." },
     "#deployments": { view: "deployments", title: "Tradetron bridge", description: "Sends one-lot runtime signals to Tradetron. Tradetron controls multiplier and paper trade size." },
     "#positions-orders": { view: "positions", title: "Positions & orders", description: "Executed quantities, protection and outstanding orders. Modes never share records." },
     "#research": { view: "research", title: "Research", description: "Historical simulations and artificial checks, separate from trading." },
-    "#activity": { view: "activity", title: "Activity", description: "Order events for the selected mode. Research signals remain in their reports." },
+    "#activity": { view: "positions", nav: "#positions-orders", title: "Positions & orders", description: "Executed quantities, protection, outstanding orders and recent activity." },
     "#past-data-check": { view: "backtests", title: "Model simulator", nav: "#research", description: "Historical research with independent settings—not a saved strategy test." },
     "#kite-connection": { view: "market-data", title: "Connections", description: "Connect prices, not trading. Live execution is unavailable." },
     "#safety-checks": { view: "safety-checks", title: "Order checks", nav: "#research", description: "Artificial scenarios test order behaviour—not market performance." },

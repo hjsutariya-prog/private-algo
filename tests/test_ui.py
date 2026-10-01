@@ -47,14 +47,13 @@ class OfflineInterfaceTests(unittest.TestCase):
 
     def test_trading_desk_preserves_paper_live_separation_and_disabled_recovery(self):
         desk = (ROOT / "static" / "trading-desk.js").read_text(encoding="utf-8")
-        for name in ("desk-live-mode", "desk-paper-mode", "desk-attention", "desk-risk", "position-groups", "desk-activity"):
+        for name in ("desk-attention", "desk-risk", "desk-open", "position-groups", "desk-activity", "recent-activity"):
             self.assertIn(name, self.by_id)
         self.assertIn("disabled", self.by_id["paper-close-retained"][1])
         self.assertNotIn('paperAction("/api/paper/close-retained"', self.js)
         self.assertNotRegex(desk, r"\bfetch\s*\(|XMLHttpRequest|innerHTML\s*=|insertAdjacentHTML")
-        for label in ("Pause new entries", "Cancel pending entry orders", "Close selected position", "Close all positions"):
+        for label in ('text("desk-execution"', 'text("desk-prices"', 'text("desk-protection"'):
             self.assertIn(label, desk)
-        self.assertIn("b.disabled=true", desk)
         self.assertIn('if(key === lastKey)return', desk)
         self.assertIn('focus({preventScroll:true})', desk)
 
@@ -95,18 +94,21 @@ class OfflineInterfaceTests(unittest.TestCase):
                 self.assertIn(parts.path, ASSETS)
                 self.assertTrue((ROOT / "static" / ASSETS[parts.path][0]).is_file())
 
-    def test_three_actionable_summary_cards_are_present(self):
-        cards = [attrs for _, attrs in self.page.elements if "summary-card" in attrs.get("class", "").split()]
-        self.assertEqual(len(cards), 3)
-        self.assertTrue(all(card.get("href", "").startswith("#") for card in cards))
+    def test_primary_navigation_is_compact_and_keeps_core_workflows(self):
+        links = [attrs for _, attrs in self.page.elements if "nav-item" in attrs.get("class", "").split()]
+        self.assertEqual([link["href"] for link in links], [
+            "#main", "#strategies-heading", "#deployments", "#paper-trading",
+            "#positions-orders", "#research", "#kite-connection",
+        ])
         for name in ("strategy-count", "check-count", "check-count-note", "broker-status"):
             self.assertIn(name, self.by_id)
-        for label in ("Saved drafts", "Example scenarios checked", "Market data"):
-            self.assertIn(label.casefold(), self.visible_copy)
+        self.assertNotIn('href="#activity"', self.html)
 
     def test_offline_and_no_real_money_warnings_remain(self):
+        desk = (ROOT / "static" / "trading-desk.js").read_text(encoding="utf-8")
+        self.assertIn("live execution unavailable", desk.casefold())
         for warning in (
-            "Live trading is unavailable", "market data only",
+            "market data only",
             "example data", "saved drafts",
             "No live orders", "No broker orders", "No market prices or real orders",
         ):
@@ -115,8 +117,8 @@ class OfflineInterfaceTests(unittest.TestCase):
 
     def test_limits_of_editing_and_planning_capital_remain_clear(self):
         for phrase in (
-            "rule editing is not available yet", "other strategy types come next",
-            "planned capital", "not a broker balance", "not a funds check",
+            "rule editing is not available for this template",
+            "planned capital", "not a margin check", "not a funds check",
         ):
             self.assertIn(phrase.casefold(), self.visible_copy)
 
@@ -135,7 +137,7 @@ class OfflineInterfaceTests(unittest.TestCase):
             if tag != "button":
                 continue
             with self.subTest(button=attrs.get("id")):
-                expected = "submit" if attrs.get("id") in {"save-strategy", "run-check", "kite-save-config", "replay-submit"} else "button"
+                expected = "submit" if attrs.get("id") in {"save-strategy", "run-check", "kite-save-config", "tradetron-save-config", "replay-submit"} else "button"
                 self.assertEqual(attrs.get("type"), expected)
 
     def test_strategy_form_has_required_bounded_inputs(self):
@@ -173,15 +175,16 @@ class OfflineInterfaceTests(unittest.TestCase):
         self.assertIn("if (running || !strategy || !scenarioId) return;", self.js)
 
     def test_past_data_replay_separates_spot_points_from_option_pnl(self):
+        rendered_or_dynamic = self.visible_copy + " " + self.js.casefold()
         for phrase in (
-            "spot points are separate from estimated option profit",
+            "spot points are not rupee p&l",
             "not actual option quotes or fills",
-            "complete 60-minute candles", "shorter periods", "missing minutes",
+            "complete 60-minute candles", "short periods", "missing minutes",
         ):
             with self.subTest(phrase=phrase):
-                self.assertIn(phrase.casefold(), self.visible_copy)
+                self.assertIn(phrase.casefold(), rendered_or_dynamic)
         self.assertIn('api("/api/replay/spot-range/jobs"', self.js)
-        self.assertIn('JSON.stringify({ start_date: startDate, model_config: quantity, strategy_mode: $("strategy-mode").value })', self.js)
+        self.assertIn('JSON.stringify({ start_date: startDate, model_config: quantity, strategy_mode: $("strategy-mode").value, return_base: returnBase })', self.js)
         self.assertIn('id="strategy-mode"', self.html)
         self.assertIn('hour_close_boundary_uncertain_v2', self.html)
         self.assertIn('hour_close_review_20s_stop_first_v2', self.html)
@@ -202,18 +205,18 @@ class OfflineInterfaceTests(unittest.TestCase):
 
     def test_every_navigation_destination_has_a_separate_workspace_view(self):
         views = [attrs for _, attrs in self.page.elements if "data-view" in attrs]
-        self.assertEqual({view["data-view"] for view in views}, {"overview", "strategies", "backtests", "market-data", "safety-checks", "paper-trading", "research", "positions", "activity"})
+        self.assertEqual({view["data-view"] for view in views}, {"overview", "deployments", "strategies", "backtests", "market-data", "safety-checks", "paper-trading", "research", "positions"})
         self.assertEqual([view["data-view"] for view in views if "hidden" not in view], ["overview"])
         links = [attrs for _, attrs in self.page.elements if "nav-item" in attrs.get("class", "").split()]
-        self.assertEqual(len(links), 6)
-        self.assertEqual(len({link["href"] for link in links}), 6)
+        self.assertEqual(len(links), 7)
+        self.assertEqual(len({link["href"] for link in links}), 7)
         self.assertIn('href="#past-data-check"', self.html)
         self.assertIn('id="page-location"', self.html)
         self.assertIn('id="page-title"', self.html)
 
     def test_backtest_and_draft_quantities_are_not_implied_to_be_linked(self):
-        self.assertIn("not a selected strategy draft", self.visible_copy)
-        self.assertIn("apply to this run only", self.visible_copy)
+        self.assertIn("saved drafts are not deployed", self.visible_copy)
+        self.assertIn("these quantities apply only to this run", self.visible_copy)
         self.assertIn("settings changed. run again", self.visible_copy)
         self.assertIn("check-strategy-select", self.by_id)
 
@@ -225,21 +228,22 @@ class OfflineInterfaceTests(unittest.TestCase):
 
     def test_model_source_summary_and_ownership_are_not_collapsed(self):
         self.assertIn("model simulator", self.visible_copy)
-        self.assertIn("independent of your saved drafts", self.visible_copy)
+        self.assertIn("these quantities apply only to this run", self.visible_copy)
         self.assertIn("saved option quotes or candles first", self.visible_copy)
-        self.assertIn("recorded prices are not guaranteed fills", self.visible_copy)
+        self.assertIn("not a broker margin check or historical contract sizes", self.visible_copy)
         for identity in ("run-brief", "run-date-coverage", "run-quantity-summary"):
             if identity == "run-brief":
                 self.assertIn('class="run-brief"', self.html)
             else:
                 self.assertIn(identity, self.by_id)
-        self.assertLess(self.html.index('class="run-brief"'), self.html.index('id="replay-submit"'))
+        self.assertIn('id="replay-submit"', self.html)
 
     def test_navigation_and_draft_cards_match_single_detail_navigation(self):
         self.assertEqual(self.by_id["mobile-menu"][1]["aria-controls"], "workspace-nav")
-        self.assertIn('href="#strategies-heading">← Back to drafts', self.html)
+        self.assertIn('href="#strategies-heading">← Back to strategy drafts', self.html)
         self.assertNotIn('card.setAttribute("aria-pressed"', self.js)
-        self.assertIn('card.setAttribute("aria-controls", "strategy-detail")', self.js)
+        self.assertIn('name.href = "#strategy-detail"', self.js)
+        self.assertIn('openStrategyDetail(strategy)', self.js)
         self.assertIn("Example scenario passed", self.js)
 
 

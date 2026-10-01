@@ -594,28 +594,27 @@
     if(record.deploymentId) {
       const linked=record.executor?.linked === true;
       if(record.strategyId) {
-        const editSize=node("button","Edit local paper size","menu-action");
-        editSize.type="button";
-        editSize.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-edit-size",{detail:{strategyId:record.strategyId}})));
-        actions.append(editSize);
+        const strategy=node("button","View strategy","menu-action");
+        strategy.type="button";
+        strategy.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-view-strategy",{detail:{strategyId:record.strategyId}})));
+        actions.append(strategy);
       }
       const linkTradetron=node("button",linked ? "Change Tradetron connection" : "Connect Tradetron","menu-action");
       linkTradetron.type="button";
       linkTradetron.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-link",{detail:{id:record.deploymentId}})));
       actions.append(linkTradetron);
       if(linked) {
-        const disconnect=node("button","Remove Tradetron connection","menu-action");
+        const disconnect=node("button","Disconnect bridge","menu-action");
         disconnect.type="button";
         disconnect.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-disconnect",{detail:{id:record.deploymentId}})));
         actions.append(disconnect);
       } else if(input.tradetron?.linked === true) {
-        const move=node("button","Move legacy link here","menu-action");
+        const move=node("button","Use older saved connection","menu-action");
         move.type="button";
         move.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-migrate-legacy",{detail:{id:record.deploymentId}})));
         actions.append(move);
       }
     }
-    actions.append(link("View bridge","#deployments"),link("Open local paper trading","#paper-trading"));
     menu.append(toggle,actions); return menu;
   }
   function deploymentSummary(records) {
@@ -626,13 +625,12 @@
         deskCell("Strategy",link(record.strategy,"#deployments")),
         deskCell("Signal size",`${record.bridge?.signal_lots || 1} lot`),
         deskCell("Tradetron",record.connection),
-        deskCell("Sending",record.nextStep),
-        deskCell("Controls",deploymentMenu(record),null,"table-controls")
+        deskCell("Sending",record.nextStep)
       );
       return row;
     });
     const n=node("div",null,"desk-table-panel strategy-summary-table");
-    n.append(deskTable("Tradetron bridge summary",["Strategy","Signal size","Tradetron","Sending","Controls"],rows,"desk-deployment-summary"));
+    n.append(deskTable("Tradetron bridge status",["Strategy","Signal size","Tradetron","Sending"],rows,"desk-deployment-summary"));
     return n;
   }
   function deploymentBlock(record) {

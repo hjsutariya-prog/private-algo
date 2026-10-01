@@ -22,7 +22,6 @@
         <a class="nav-item" href="#paper-trading">Paper trading</a>
         <a class="nav-item" href="#positions-orders">Positions &amp; orders</a>
         <a class="nav-item" href="#research">Research</a>
-        <a class="nav-item" href="#activity">Activity</a>
         <a class="nav-item" href="#kite-connection">Connections</a>
       </nav>
       <a class="sidebar-connection" href="#kite-connection"><span class="small-dot" id="nav-connection-dot" aria-hidden="true"></span><span id="nav-connection-status">Checking Zerodha…</span><span aria-hidden="true">↗</span></a>
@@ -41,7 +40,7 @@
       <section class="workspace-view" data-view="overview" aria-label="Trading desk">
         <section id="desk-attention" class="desk-attention" aria-labelledby="desk-attention-title" hidden><h2 id="desk-attention-title">Needs attention</h2><div id="desk-issues"></div></section>
         <section id="desk-risk-section" class="desk-section" aria-labelledby="desk-risk-title" hidden><h2 id="desk-risk-title">Today’s profit/loss &amp; risk</h2><div id="desk-risk" class="risk-grid"></div><p id="desk-risk-note" class="essential-note"></p></section>
-        <section class="desk-section" aria-labelledby="desk-open-title"><div class="section-heading"><h2 id="desk-open-title">Tradetron bridge</h2><a class="text-link" href="#deployments">Open bridge →</a></div><div id="desk-open"></div></section>
+        <section class="desk-section" aria-labelledby="desk-open-title"><h2 id="desk-open-title">Bridge status</h2><p class="essential-note">A quick view only. Open a strategy name when you need to manage its Tradetron bridge.</p><div id="desk-open"></div></section>
       </section>
 
       <section class="workspace-view" data-view="deployments" id="deployments" aria-label="Tradetron bridge" hidden>
@@ -55,8 +54,8 @@
         <nav class="section-links" aria-label="Position tools"><a href="#paper-trading">Open paper order lab →</a></nav>
         <p id="positions-scope" class="essential-note"></p><div id="position-groups"></div>
         <section id="orders-section" class="desk-section" aria-labelledby="orders-title" hidden><h2 id="orders-title">Orders</h2><div id="desk-orders"></div></section>
+        <details class="connection-help position-activity" id="recent-activity"><summary>Recent activity</summary><p id="activity-scope" class="essential-note"></p><div id="desk-activity"></div></details>
       </section>
-      <section class="workspace-view" data-view="activity" id="activity" aria-label="Activity" hidden><p id="activity-scope" class="essential-note"></p><div id="desk-activity"></div></section>
       <section class="workspace-view" data-view="research" id="research" aria-label="Research" hidden>
         <p class="essential-note research-intro">Historical research and rule checks. These are never positions, fills or live trading.</p>
         <section class="research-tools" aria-labelledby="research-tools-title">

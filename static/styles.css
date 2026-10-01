@@ -270,6 +270,7 @@ dialog::backdrop { background: #03060bc9; }
 .connection-help summary { color: #acbfe7; padding: 1px 0; }
 .connection-help summary:hover { color: #d9e5ff; }
 .connection-help p { margin-top: 11px; max-width: 800px; }
+.position-activity { margin-bottom: 24px; }
 .connection-help code { display: inline-block; background: #0f1520; color: #c2d6ff; border: 1px solid #33445f; padding: 7px 10px; border-radius: 4px; margin-top: 9px; overflow-wrap: anywhere; max-width: 100%; font-size: 12px; user-select: all; }
 .credential-note { color: #b5c9ec; background: #1b2940; border: 1px solid #3b5277; border-radius: 6px; margin-top: 15px; padding: 11px 12px; font-size: 11px; line-height: 1.7; }
 #kite-dialog { width: min(540px,calc(100vw - 32px)); }
