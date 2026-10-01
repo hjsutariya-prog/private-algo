@@ -170,6 +170,9 @@ class ApiTests(unittest.TestCase):
         status, initial, _ = self.request("GET", "/api/tradetron/status")
         self.assertEqual(status, 200)
         self.assertFalse(initial["status"]["linked"])
+        self.assertEqual(initial["runner"]["mode"], "paper_only")
+        self.assertFalse(initial["runner"]["armed"])
+        self.assertEqual(initial["runner"]["automatic_runner"], "unavailable")
         status, linked, _ = self.request("POST", "/api/tradetron/link", {
             "strategy_id": "999056202", "api_link": fixture_link, "remember": True,
         })

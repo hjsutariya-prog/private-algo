@@ -4,7 +4,7 @@
   const $ = (id) => document.getElementById(id);
   const state = { strategies: [], scenario_catalog: [], recent_runs: [] };
   const kite = { status: null, instruments: null, quote: null, busy: false, expiryTimer: null };
-  const tradetron = { status: null, busy: false };
+  const tradetron = { status: null, runner: null, busy: false };
   const replay = { busy: false, version: 0, jobId: null, progress: null, cancelRequested: false, cancelSent: false, settingsKey: null };
   let selectedId = null;
   let editingId = null;
@@ -1867,12 +1867,14 @@
 
   function renderTradetron() {
     const status = tradetron.status;
+    const runner = tradetron.runner;
     const linked = status?.linked === true;
     $("tradetron-status-badge").textContent = linked && status?.delivery === "verified" ? "PAPER LINK VERIFIED" : linked && status?.delivery === "needs_relink" ? "LINK NEEDS UPDATING" : linked && status?.delivery === "unverified" ? "PAPER LINK UNVERIFIED" : status ? "NOT LINKED" : "UNAVAILABLE";
     $("tradetron-message").textContent = status?.message || "The executor-link status is unavailable.";
     $("tradetron-strategy-status").textContent = linked ? `Strategy ${status.strategy_id}` : "Not linked";
     $("tradetron-delivery-status").textContent = status?.delivery === "verified" ? "Verified · paper delivery only" : status?.delivery === "unverified" ? "Not tested yet" : status?.delivery === "needs_relink" ? "Rejected · replace API link" : status?.delivery === "disabled" ? "Unavailable" : "Unavailable";
     $("tradetron-storage-status").textContent = status?.credential_storage_warning ? "Saved link needs attention" : linked && status.credentials_saved ? "Windows account protected" : "Not saved";
+    $("tradetron-runner-status").textContent = runner?.blocked ? "Blocked · review Tradetron" : runner?.armed ? "Armed · paper values only" : runner?.automatic_runner === "unavailable" ? "Off · automatic sending unavailable" : "Not checked";
     $("tradetron-configure").textContent = linked ? "Change executor link" : "Link paper executor";
     $("tradetron-configure").disabled = tradetron.busy || status?.credential_storage_available !== true;
     $("tradetron-forget").hidden = !linked && !status?.credential_storage_warning;
@@ -1885,11 +1887,13 @@
     renderTradetron();
     try {
       const response = await api("/api/tradetron/status");
-      if (!response.status || typeof response.status.linked !== "boolean" || !["unverified", "verified", "needs_relink", "disabled"].includes(response.status.delivery)) throw new Error("The local app did not return a valid executor-link status.");
+      if (!response.status || typeof response.status.linked !== "boolean" || !["unverified", "verified", "needs_relink", "disabled"].includes(response.status.delivery) || !response.runner || response.runner.mode !== "paper_only") throw new Error("The local app did not return a valid executor-link status.");
       tradetron.status = response.status;
+      tradetron.runner = response.runner;
       showError("tradetron-error", "");
     } catch (error) {
       tradetron.status = null;
+      tradetron.runner = null;
       showError("tradetron-error", error.message);
     } finally { tradetron.busy = false; renderTradetron(); renderJourney(); }
   }

@@ -4,7 +4,7 @@ import unittest
 from datetime import date
 from urllib.error import HTTPError
 
-from tradetron_delivery import RuntimeUpdate, TradetronDeliveryError, TradetronPaperDelivery, bootstrap_entry_updates, dispatch_snapshot_entries, entry_updates, snapshot_entries
+from tradetron_delivery import RuntimeUpdate, TradetronDeliveryError, TradetronPaperDelivery, bootstrap_entry_updates, dispatch_snapshot_entries, entry_updates, exit_updates, hedge_replacement_updates, signal_updates, snapshot_entries
 
 
 DETAILS = {"strategy_id": "999056854", "auth_token": "11111111-1111-4111-8111-111111111111",
@@ -51,6 +51,20 @@ class DeliveryTests(unittest.TestCase):
     def test_entry_values_arrive_before_directional_sequence_trigger(self):
         ce, _ = snapshot_entries(snapshot(), current_date=date(2026, 10, 1))
         self.assertEqual([item.name for item in entry_updates(ce)], ["pa_ce_expiry_offset", "pa_ce_short_strike", "pa_ce_hedge_strike", "pa_ce_entry_seq"])
+
+    def test_exit_and_hedge_replacement_have_only_the_runtime_values_the_template_uses(self):
+        exit_signal = {"event_id": "exit-pe-20261001-002", "event_type": "exit", "direction": "PE", "sequence": 2,
+                       "expiry": "2026-10-27", "expiry_offset": 0, "quantity": 30}
+        replacement = {"event_id": "hedge-ce-20261001-003", "event_type": "hedge_replacement", "direction": "CE", "sequence": 3,
+                       "expiry": "2026-11-24", "expiry_offset": 1, "quantity": 30,
+                       "previous_hedge_symbol": "BANKNIFTY26OCT55000CE", "previous_hedge_strike": 55000,
+                       "hedge_symbol": "BANKNIFTY26NOV56000CE", "hedge_strike": 56000,
+                       "previous_expiry": "2026-10-27", "previous_expiry_offset": 0}
+        self.assertEqual([value.name for value in exit_updates(exit_signal)], ["pa_pe_exit_seq"])
+        self.assertEqual([value.name for value in hedge_replacement_updates(replacement)], [
+            "pa_ce_expiry_offset", "pa_ce_previous_expiry_offset", "pa_ce_hedge_strike", "pa_ce_previous_hedge_strike", "pa_ce_hedge_seq"])
+        self.assertEqual(signal_updates(exit_signal), exit_updates(exit_signal))
+        self.assertEqual(signal_updates(replacement), hedge_replacement_updates(replacement))
 
     def test_bootstrap_rearms_only_the_directional_test_acknowledgement(self):
         ce, _ = snapshot_entries(snapshot(), sequence=2, current_date=date(2026, 10, 1))

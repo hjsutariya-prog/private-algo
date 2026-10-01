@@ -28,6 +28,7 @@ from paper_replay import PaperReplay, request_settings
 from credential_store import CredentialStore, CredentialStoreError
 from tradetron_delivery import TradetronDeliveryError, dispatch_snapshot_entries
 from tradetron_link import TradetronLinkState, TradetronLinkStore
+from tradetron_runtime import TradetronSignalRuntime
 
 ROOT = Path(__file__).resolve().parent
 ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
@@ -655,6 +656,8 @@ class LocalServer(ThreadingHTTPServer):
             self.paper = PaperRuntime(self.kite, store.path.parent / (store.path.stem + "-paper.sqlite3"), option_archive=archive)
             self.tradetron = TradetronLinkState(TradetronLinkStore(
                 store.path.parent / (store.path.stem + "-tradetron.dpapi")))
+            self.tradetron_runtime = TradetronSignalRuntime(
+                self.tradetron, store.path.parent / (store.path.stem + "-tradetron-events.sqlite3"))
         except Exception:
             super().server_close()
             raise
@@ -753,7 +756,8 @@ class Handler(BaseHTTPRequestHandler):
             elif route == "/api/kite/status":
                 self._respond(200, {"status": self.server.kite.status(self.server.server_address[1])})
             elif route == "/api/tradetron/status":
-                self._respond(200, {"status": self.server.tradetron.status()})
+                self._respond(200, {"status": self.server.tradetron.status(),
+                                    "runner": self.server.tradetron_runtime.status()})
             elif route == "/api/paper/status":
                 self._respond(200, {**self.server.paper.status(), "historical_replay": self.server.paper_replay.status()})
             elif route == "/api/paper/evidence":

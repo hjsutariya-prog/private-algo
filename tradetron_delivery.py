@@ -55,6 +55,46 @@ def entry_updates(signal: PortalSignal | Mapping[str, Any]) -> tuple[RuntimeUpda
     )
 
 
+def exit_updates(signal: PortalSignal | Mapping[str, Any]) -> tuple[RuntimeUpdate, ...]:
+    """Build a directional exit trigger.
+
+    The imported executor already knows which CE or PE legs it owns.  Sending
+    only the monotonic counter avoids giving a caller an opportunity to alter
+    a contract while asking to close it.
+    """
+    parsed = parse_portal_signal(signal) if isinstance(signal, Mapping) else signal
+    if not isinstance(parsed, PortalSignal) or parsed.event_type != "exit":
+        raise ValueError("Only a validated exit signal can create an exit update.")
+    return (RuntimeUpdate("pa_" + parsed.direction.lower() + "_exit_seq", str(parsed.sequence)),)
+
+
+def hedge_replacement_updates(signal: PortalSignal | Mapping[str, Any]) -> tuple[RuntimeUpdate, ...]:
+    """Build a replacement message, ending with its monotonic trigger."""
+    parsed = parse_portal_signal(signal) if isinstance(signal, Mapping) else signal
+    if not isinstance(parsed, PortalSignal) or parsed.event_type != "hedge_replacement":
+        raise ValueError("Only a validated hedge-replacement signal can create a replacement update.")
+    prefix = "pa_" + parsed.direction.lower()
+    return (
+        RuntimeUpdate(prefix + "_expiry_offset", str(parsed.expiry_offset)),
+        RuntimeUpdate(prefix + "_previous_expiry_offset", str(parsed.previous_expiry_offset)),
+        RuntimeUpdate(prefix + "_hedge_strike", str(parsed.hedge_strike)),
+        RuntimeUpdate(prefix + "_previous_hedge_strike", str(parsed.previous_hedge_strike)),
+        RuntimeUpdate(prefix + "_hedge_seq", str(parsed.sequence)),
+    )
+
+
+def signal_updates(signal: PortalSignal | Mapping[str, Any]) -> tuple[RuntimeUpdate, ...]:
+    """Return the exact, ordered runtime values for one validated event."""
+    parsed = parse_portal_signal(signal) if isinstance(signal, Mapping) else signal
+    if not isinstance(parsed, PortalSignal):
+        raise ValueError("A validated portal signal is required.")
+    if parsed.event_type == "entry":
+        return entry_updates(parsed)
+    if parsed.event_type == "exit":
+        return exit_updates(parsed)
+    return hedge_replacement_updates(parsed)
+
+
 def bootstrap_entry_updates(signal: PortalSignal | Mapping[str, Any]) -> tuple[RuntimeUpdate, ...]:
     """Re-arm one stale paper-test acknowledgement before its final trigger.
 
@@ -123,6 +163,10 @@ class TradetronPaperDelivery:
     def entry(self, signal: PortalSignal | Mapping[str, Any]) -> dict[str, Any]:
         """Deliver one CE or PE entry as a single ordered JSON request."""
         return self.deliver(entry_updates(signal))
+
+    def signal(self, signal: PortalSignal | Mapping[str, Any]) -> dict[str, Any]:
+        """Deliver one already-validated paper-executor event."""
+        return self.deliver(signal_updates(signal))
 
     def bootstrap_entry(self, signal: PortalSignal | Mapping[str, Any]) -> dict[str, Any]:
         """Deliver the explicitly approved one-time four-leg paper bootstrap."""
