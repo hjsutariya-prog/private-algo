@@ -1293,26 +1293,18 @@ h1 { font-size: 28px; letter-spacing: -.7px; }
 .row-menu-actions .text-link:hover { background: rgba(175,166,255,.12); color: #fff; }
 .deployment-page { max-width: 1120px; }
 .deployment-page > .essential-note { margin: 0 0 13px; }
-.deployment-intro { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; margin: 0 0 22px; padding: 0 0 20px; border-bottom: 1px solid var(--line); }
-.deployment-intro h2 { margin: 4px 0 7px; color: #f5f6fb; font-size: 21px; letter-spacing: -.35px; }
-.deployment-intro p:not(.eyebrow) { max-width: 620px; margin: 0; color: #aeb7cb; font-size: 13px; line-height: 1.55; }
-.deployment-flow { display: flex; flex: 0 0 auto; align-items: center; gap: 9px; margin: 4px 0 0; padding: 0; list-style: none; color: #aeb7cb; font-size: 11px; }
-.deployment-flow li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.deployment-flow strong { display: grid; width: 19px; height: 19px; place-items: center; border: 1px solid rgba(175,166,255,.42); border-radius: 50%; color: #e7e4ff; font-size: 10px; }
 .deployment-list { display: grid; gap: 18px; }
 .deployment-card { overflow: hidden; border: 1px solid #3a4150; border-radius: 10px; background: linear-gradient(145deg, #1d212a 0%, #171a21 58%, #15181e 100%); box-shadow: 0 16px 38px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.035); }
-.deployment-card-head { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: start; gap: 10px 14px; padding: 20px 20px 16px; border-bottom: 1px solid #3a4150; }
+.deployment-card-head { display: grid; grid-template-columns: minmax(0,1fr) auto auto auto; align-items: start; gap: 10px 12px; padding: 17px 20px 14px; border-bottom: 1px solid #3a4150; }
 .deployment-card h2 { margin: 0; color: #f7f8fc; font-size: 18px; font-weight: 650; letter-spacing: -.3px; }
 .deployment-card-head .essential-note { margin: 5px 0 0; max-width: 680px; }
 .deployment-card .deployment-status { align-self: center; white-space: nowrap; }
 .deployment-facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0; margin: 0; border-bottom: 1px solid #3a4150; background: rgba(7,9,13,.18); }
-.deployment-facts > div { min-height: 70px; padding: 13px 20px; border-right: 1px solid rgba(67,75,91,.56); }
+.deployment-facts > div { min-height: 58px; padding: 12px 20px; border-right: 1px solid rgba(67,75,91,.56); }
 .deployment-facts > div:last-child { border-right: 0; }
 .deployment-facts dt { margin: 0; color: #aeb7cb; font-size: 10px; font-weight: 650; letter-spacing: .075em; text-transform: uppercase; }
 .deployment-facts dd { margin: 7px 0 0; color: #eef0f7; font-size: 13px; font-weight: 600; }
-.deployment-facts > div > small { display: block; margin-top: 4px; color: #9da9c1; font-size: 11px; font-weight: 450; line-height: 1.35; }
-.deployment-facts > div.deployment-connection { background: linear-gradient(90deg, rgba(175,166,255,.09), rgba(175,166,255,.025)); }
-.deployment-facts > div.deployment-next { background: rgba(5,7,11,.16); }
+.deployment-facts > div.deployment-connection { background: linear-gradient(90deg, rgba(175,166,255,.07), rgba(175,166,255,.018)); }
 .deployment-leg-table td:first-child { color: #e8ebf4; font-family: inherit; font-size: 13px; font-weight: 600; letter-spacing: -.01em; }
 .deployment-leg-table th:not(:first-child), .deployment-leg-table td:not(:first-child) { text-align: right; }
 .desk-position-table > .text-link, .replay-table-panel > .text-link { display: inline-flex; margin: 10px 16px 14px; }
@@ -1445,10 +1437,8 @@ footer { margin-top: 28px; border-top-color: var(--line); }
   .desk-table td:first-child small { text-align: left; }
   .desk-table-foot { align-items: flex-start; flex-direction: column; gap: 4px; }
   .activity-table-panel { overflow: hidden; }
-  .deployment-card-head { grid-template-columns: 1fr auto; padding: 16px 14px 14px; }
+  .deployment-card-head { grid-template-columns: minmax(0,1fr) auto auto auto; padding: 16px 14px 14px; }
   .deployment-card-head > :first-child { grid-column: 1/-1; }
-  .deployment-intro { display: block; margin-bottom: 18px; padding-bottom: 16px; }
-  .deployment-flow { flex-wrap: wrap; margin-top: 14px; }
   .deployment-facts { grid-template-columns: 1fr 1fr; }
   .deployment-facts > div { min-height: 66px; padding: 12px 14px; border-bottom: 1px solid rgba(67,75,91,.56); }
   .deployment-facts > div:nth-child(2n) { border-right: 0; }

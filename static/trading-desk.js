@@ -172,8 +172,8 @@
           : "Connected"
         : "Not connected";
       const connectionNote=linked
-        ? `Tradetron paper strategy ${executor.strategy_id || "not recorded"}. This connection belongs only to this paper setup.`
-        : "Connect this paper setup to its matching Tradetron paper strategy.";
+        ? `Tradetron paper strategy ${executor.strategy_id || "not recorded"}`
+        : "Connect its matching Tradetron paper strategy";
       const nextStep=!linked ? "Connect Tradetron"
         : deployment.state === "linked_unverified" ? "Run delivery check"
         : deployment.state === "paper_ready" ? "Automatic sends are off"
@@ -197,8 +197,8 @@
         legs:[], pnl:null,
         deploymentId:deployment.id, deploymentState:deployment.state, executor, runner,
         note:linked
-          ? `Paper deployment · ${deployment.strategy_version || "version unavailable"}. Automatic signal sending is off.`
-          : `Paper deployment · ${deployment.strategy_version || "version unavailable"}. Connect Tradetron to complete setup.`,
+          ? connectionNote
+          : "Connect Tradetron to complete paper setup.",
       });
     }
     const historical=liveReplayView(input?.paper?.historical_replay,input,now);
@@ -634,12 +634,12 @@
     title.append(node("h2",record.strategy),node("p",record.note,"essential-note"));
     head.append(title,node("span",record.execution,"deployment-execution"),node("span",record.connection || record.status,"state-label deployment-status"+(record.connection === "Needs a new link" ? " warning" : "")),deploymentMenu(record));
     const facts=node("dl",null,"deployment-facts");
-    const connection=detail("Tradetron connection",record.connection || "Not connected",record.connectionNote);
+    const connection=detail("Tradetron",record.connection || "Not connected");
     connection.classList.add("deployment-connection");
-    const next=detail("Automatic signal sending",record.nextStep || "Off",record.deploymentState === "paper_ready" ? "The connection is tested. This app is not sending new signals automatically." : "Automatic sending is not available yet.");
+    const next=detail("Signal sending",record.nextStep || "Off");
     next.classList.add("deployment-next");
-    facts.append(connection,next,detail("Open option legs",String(record.legs.length),record.legs.length ? "Local paper records only." : "No local paper positions recorded."));
-    if(record.multiplier) facts.append(detail("Paper size",`1 × ${record.multiplier} = ${record.multiplier} lots`));
+    facts.append(connection,next,detail("Open option legs",String(record.legs.length)));
+    if(record.multiplier) facts.append(detail("Paper size",`${record.multiplier} lots`));
     n.append(head,facts);
     if (record.legs.length) {
       const rows=record.legs.map(leg=>{
@@ -721,8 +721,8 @@
     const savedDeploymentCount=paperDeployments.length;
     const historicalShown=deployments.some(record=>record.id === "historical-replay");
     text("deployments-scope",savedDeploymentCount
-      ? `${savedDeploymentCount} paper ${savedDeploymentCount === 1 ? "deployment" : "deployments"}${historicalShown ? " · Historical replay is under Positions & orders and Research." : ""}`
-      : historicalShown ? "No paper deployments yet · Historical replay is under Positions & orders and Research." : "No paper deployments yet.");
+      ? `${savedDeploymentCount} paper ${savedDeploymentCount === 1 ? "setup" : "setups"}${historicalShown ? " · Historical replay is separate." : ""}`
+      : historicalShown ? "No paper setup yet · Historical replay is separate." : "No paper setup yet.");
     const ordered=v.groups.slice().sort((a,b)=>Number(b.strategy === selectedGroup)-Number(a.strategy === selectedGroup));
     const historical=mode === "paper" ? replayView(input.paper?.historical_replay) : null;
     const positionTables=[];
