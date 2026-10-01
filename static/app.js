@@ -1804,7 +1804,7 @@
     $("kite-message").textContent = expired ? "The data session has expired. Sign in at Zerodha again before requesting data." : status?.message || (connected ? "A sign-in session is held locally. Fetch a quote to confirm data access. No order functions are included." : configured ? "Your app details are loaded. Complete sign-in at Zerodha to request market data." : "Add your Kite app details, then sign in at Zerodha.");
     $("kite-key-status").textContent = configured ? status.masked_api_key || "Configured · key hidden" : "Not configured";
     $("kite-session-status").textContent = expired ? "Expired · sign in again" : connected ? (status.session_expires_at ? `Expires ${marketTime(status.session_expires_at)}` : "Connected · expiry not supplied") : "Not connected";
-    $("kite-memory-status").textContent = status?.credential_storage_warning ? "Saved details need attention" : status?.credentials_saved === true ? "Saved · Windows account protected" : status?.credentials_in_memory === true ? "In running app memory only" : "None loaded";
+    $("kite-memory-status").textContent = status?.credential_storage_warning ? "Saved details need attention" : status?.credentials_saved === true ? "Saved · Windows protected" : status?.credentials_in_memory === true ? "In running app memory only" : "None loaded";
     $("kite-redirect-url").textContent = status?.redirect_url || "http://127.0.0.1:8765/api/kite/callback";
     $("kite-configure").textContent = configured ? "Change app details" : "Set up connection";
     $("kite-login").textContent = connected ? "Sign in again" : "Sign in at Zerodha";
@@ -2047,7 +2047,7 @@
   function setKiteFormBusy(busy) {
     for (const id of ["kite-save-config", "kite-close-dialog", "kite-cancel-dialog", "kite-api-key", "kite-api-secret"]) $(id).disabled = busy;
     $("kite-remember").disabled = busy || kite.status?.credential_storage_available !== true;
-    $("kite-remember-note").textContent = kite.status?.credential_storage_available === true ? "Optional. Saves the app key and secret, never your password, one-time code or login token. Unchecking it removes previously saved details." : "Remember is unavailable in this app session. You can still use the details in memory only.";
+    $("kite-remember-note").textContent = kite.status?.credential_storage_available === true ? "Optional. Saves the app key and secret with Windows protection, never your password, one-time code or login token. It works across app restarts during this Windows sign-in. Unchecking it removes previously saved details." : "Remember is unavailable in this app session. You can still use the details in memory only.";
     $("kite-save-config").textContent = busy ? "Saving app details…" : "Continue";
   }
 
@@ -2079,7 +2079,7 @@
       kite.quote = null;
       $("kite-dialog").close();
       showError("kite-error", "");
-      announce(response.status.credentials_saved ? "App details saved with Windows account protection. Sign in at Zerodha to request market data." : "App details loaded for this session only. Sign in at Zerodha to request market data.");
+      announce(response.status.credentials_saved ? "App details saved with Windows protection. Sign in at Zerodha to request market data." : "App details loaded for this session only. Sign in at Zerodha to request market data.");
     } catch (error) {
       showError("kite-form-error", `${error.message} Your credential fields have been cleared; please re-enter them to retry.`);
     } finally {

@@ -11,7 +11,7 @@ import re
 import tempfile
 from urllib.parse import parse_qs, urlsplit
 
-from credential_store import CredentialStoreError, WindowsProtection
+from credential_store import CredentialStoreError, WindowsCredentialManager, WindowsProtection
 from tradetron_protocol import template_contract
 
 
@@ -49,13 +49,28 @@ class TradetronLinkStore:
     """DPAPI storage separate from Kite credentials and paper records."""
     HEADER = b"PrivateAlgoDesk-Tradetron-DPAPI-v1\n"
 
-    def __init__(self, path, protection=None):
+    def __init__(self, path, protection=None, credential_manager=None):
         self.path = Path(path)
         self.protection = protection or WindowsProtection()
+        self.credential_manager = credential_manager if credential_manager is not None else (
+            WindowsCredentialManager(self.path, "Tradetron") if isinstance(self.protection, WindowsProtection) else None)
 
     @property
     def available(self):
-        return self.protection.available
+        return self.protection.available or bool(self.credential_manager and self.credential_manager.available)
+
+    @staticmethod
+    def _decode(payload):
+        details = json.loads(payload)
+        if not valid_details(details):
+            raise ValueError()
+        return details
+
+    def _manager_load(self):
+        if not self.credential_manager:
+            return None
+        payload = self.credential_manager.load()
+        return None if payload is None else self._decode(payload)
 
     def load(self):
         try:
@@ -63,13 +78,19 @@ class TradetronLinkStore:
                 encrypted = saved.read(16385)
             if len(encrypted) > 16384 or not encrypted.startswith(self.HEADER):
                 raise ValueError()
-            details = json.loads(self.protection.unprotect(encrypted[len(self.HEADER):]))
-            if not valid_details(details):
-                raise ValueError()
-            return details
+            return self._decode(self.protection.unprotect(encrypted[len(self.HEADER):]))
         except FileNotFoundError:
-            return None
+            try:
+                return self._manager_load()
+            except (OSError, ValueError):
+                raise CredentialStoreError("Saved Tradetron link could not be unlocked. Link it again or choose Forget executor link.") from None
         except (OSError, ValueError):
+            try:
+                fallback = self._manager_load()
+                if fallback is not None:
+                    return fallback
+            except (OSError, ValueError):
+                pass
             raise CredentialStoreError("Saved Tradetron link could not be unlocked. Link it again or choose Forget executor link.") from None
 
     def save(self, details):
@@ -87,6 +108,16 @@ class TradetronLinkStore:
             os.replace(temporary, self.path)
             temporary = None
         except (OSError, ValueError):
+            if self.credential_manager:
+                try:
+                    self.credential_manager.save(json.dumps(details, separators=(",", ":")).encode("utf-8"))
+                    try:
+                        self.path.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+                    return
+                except (OSError, ValueError):
+                    pass
             raise CredentialStoreError("Tradetron link was not saved. Windows protection or file access failed.") from None
         finally:
             if temporary is not None:
@@ -96,10 +127,18 @@ class TradetronLinkStore:
                     pass
 
     def forget(self):
+        manager_error = None
+        if self.credential_manager:
+            try:
+                self.credential_manager.forget()
+            except CredentialStoreError as exc:
+                manager_error = exc
         try:
             self.path.unlink(missing_ok=True)
         except OSError:
             raise CredentialStoreError("Saved Tradetron link could not be removed. It has not been forgotten; check file access and try again.") from None
+        if manager_error:
+            raise manager_error
 
 
 class TradetronLinkState:

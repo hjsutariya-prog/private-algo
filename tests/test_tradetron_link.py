@@ -30,6 +30,32 @@ class FixtureProtection:
         return value[10:][::-1]
 
 
+class ProfilelessProtection:
+    available = True
+
+    def protect(self, value):
+        raise CredentialStoreError("DPAPI profile unavailable")
+
+    def unprotect(self, value):
+        raise CredentialStoreError("DPAPI profile unavailable")
+
+
+class FixtureCredentialManager:
+    available = True
+
+    def __init__(self):
+        self.payload = None
+
+    def save(self, payload):
+        self.payload = bytes(payload)
+
+    def load(self):
+        return self.payload
+
+    def forget(self):
+        self.payload = None
+
+
 class TradetronLinkTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -101,6 +127,18 @@ class TradetronLinkTests(unittest.TestCase):
         cleared = self.state.clear()
         self.assertFalse(cleared["linked"])
         self.assertFalse(self.path.exists())
+
+    def test_profileless_dpapi_uses_credential_manager_without_writing_a_link_file(self):
+        manager = FixtureCredentialManager()
+        store = TradetronLinkStore(self.path, ProfilelessProtection(), manager)
+        state = TradetronLinkState(store)
+        state.configure({"strategy_id": "999056202", "api_link": API_LINK, "remember": True})
+        self.assertFalse(self.path.exists())
+        self.assertIsNotNone(manager.payload)
+        restored = TradetronLinkState(store)
+        self.assertTrue(restored.status()["linked"])
+        restored.clear()
+        self.assertIsNone(manager.payload)
 
     def test_corrupt_saved_link_is_visible_but_not_treated_as_linked(self):
         self.path.write_bytes(b"not a protected link")

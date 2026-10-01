@@ -28,6 +28,34 @@ class FixtureProtection:
         return value[10:][::-1]
 
 
+class ProfilelessProtection:
+    """Models a local runner whose Windows profile cannot serve DPAPI."""
+    available = True
+
+    def protect(self, value):
+        raise CredentialStoreError("DPAPI profile unavailable")
+
+    def unprotect(self, value):
+        raise CredentialStoreError("DPAPI profile unavailable")
+
+
+class FixtureCredentialManager:
+    """In-memory stand-in for Windows Credential Manager; never uses user data."""
+    available = True
+
+    def __init__(self):
+        self.payload = None
+
+    def save(self, payload):
+        self.payload = bytes(payload)
+
+    def load(self):
+        return self.payload
+
+    def forget(self):
+        self.payload = None
+
+
 class CredentialTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -98,6 +126,19 @@ class CredentialTests(unittest.TestCase):
         self.assertIsNone(self.state.api_key)
         self.state.configure(DETAILS, 8765)
 
+    def test_profileless_dpapi_uses_protected_windows_credential_manager_not_a_file(self):
+        manager = FixtureCredentialManager()
+        store = CredentialStore(self.path, ProfilelessProtection(), manager)
+        state = KiteState(credential_store=store)
+        result = state.configure({**DETAILS, "remember": True}, 8765)
+        self.assertTrue(result["credentials_saved"])
+        self.assertFalse(self.path.exists())
+        self.assertIsNotNone(manager.payload)
+        restored = KiteState(credential_store=store)
+        self.assertEqual(restored.api_key, DETAILS["api_key"])
+        restored.clear(8765)
+        self.assertIsNone(manager.payload)
+
     def test_encryption_failure_leaves_old_credentials_and_file_unchanged(self):
         self.state.configure({**DETAILS, "remember": True}, 8765)
         original = self.path.read_bytes()
@@ -143,16 +184,20 @@ class CredentialTests(unittest.TestCase):
     @unittest.skipUnless(os.name == "nt", "Windows account protection test")
     def test_real_windows_protection_round_trip_and_tamper_rejection(self):
         store = CredentialStore(self.path)
-        store.save(DETAILS["api_key"], DETAILS["api_secret"])
-        self.assertEqual(CredentialStore(self.path).load(), DETAILS)
-        encrypted = self.path.read_bytes()
-        self.assertNotIn(DETAILS["api_secret"].encode(), encrypted)
-        self.assertNotIn(DETAILS["api_key"].encode(), encrypted)
-        tampered = bytearray(encrypted)
-        tampered[-1] ^= 1
-        self.path.write_bytes(tampered)
-        with self.assertRaises(CredentialStoreError):
-            store.load()
+        try:
+            store.save(DETAILS["api_key"], DETAILS["api_secret"])
+            self.assertEqual(CredentialStore(self.path).load(), DETAILS)
+            if self.path.exists():
+                encrypted = self.path.read_bytes()
+                self.assertNotIn(DETAILS["api_secret"].encode(), encrypted)
+                self.assertNotIn(DETAILS["api_key"].encode(), encrypted)
+                tampered = bytearray(encrypted)
+                tampered[-1] ^= 1
+                self.path.write_bytes(tampered)
+                with self.assertRaises(CredentialStoreError):
+                    store.load()
+        finally:
+            store.forget()
 
     @unittest.skipUnless(os.name == "nt", "Windows server restart test")
     def test_server_restart_loads_protected_app_details_only(self):
