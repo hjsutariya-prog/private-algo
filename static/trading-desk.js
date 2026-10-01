@@ -164,6 +164,7 @@
       if (deployment?.mode !== "paper_only") continue;
       const executor=deployment.executor || {};
       const runner=deployment.runner || {};
+      const bridge=deployment.bridge || {};
       const linked=executor.linked === true;
       const connection=linked
         ? deployment.state === "paper_ready" && executor.delivery === "verified" ? "Connected & tested"
@@ -177,28 +178,29 @@
       const nextStep=!linked ? "Connect Tradetron"
         : deployment.state === "linked_unverified" ? "Run delivery check"
         : deployment.state === "paper_ready" ? "Automatic sends are off"
-        : deployment.state === "paper_running" ? "Paper signals running"
-        : deployment.state === "paused" ? "Paper signals paused"
-        : deployment.state === "blocked" ? "Review paper setup"
-        : "Review paper setup";
+        : deployment.state === "paper_running" ? "Bridge signals running"
+        : deployment.state === "paused" ? "Bridge paused"
+        : deployment.state === "blocked" ? "Review Tradetron bridge"
+        : "Review Tradetron bridge";
       const status=linked
-        ? deployment.state === "linked_unverified" ? "Link saved · paper check required"
-          : deployment.state === "paper_ready" ? "Paper ready · not running"
-          : deployment.state === "paper_running" ? "Paper running"
-          : deployment.state === "paused" ? "Paper paused"
-          : deployment.state === "blocked" ? "Paper blocked"
-          : "Paper setup pending"
+        ? deployment.state === "linked_unverified" ? "Link saved · delivery check required"
+          : deployment.state === "paper_ready" ? "Bridge ready · not sending"
+          : deployment.state === "paper_running" ? "Bridge running"
+          : deployment.state === "paused" ? "Bridge paused"
+          : deployment.state === "blocked" ? "Bridge blocked"
+          : "Bridge setup pending"
         : "Not linked · not running";
       records.push({
         id:"saved-deployment:"+deployment.id, strategy:deployment.strategy_name || "BANKNIFTY strategy",
-        execution:"Paper", status,
+        execution:"Bridge", status,
         connection,connectionNote,nextStep,
+        strategyId:deployment.strategy_id, bridge,
         valuationAt:deployment.updated_at || deployment.created_at, multiplier:deployment.multiplier,
         legs:[], pnl:null,
         deploymentId:deployment.id, deploymentState:deployment.state, executor, runner,
         note:linked
           ? connectionNote
-          : "Connect Tradetron to complete paper setup.",
+          : "Connect Tradetron to complete this bridge.",
       });
     }
     const historical=liveReplayView(input?.paper?.historical_replay,input,now);
@@ -591,6 +593,12 @@
     }
     if(record.deploymentId) {
       const linked=record.executor?.linked === true;
+      if(record.strategyId) {
+        const editSize=node("button","Edit local paper size","menu-action");
+        editSize.type="button";
+        editSize.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-edit-size",{detail:{strategyId:record.strategyId}})));
+        actions.append(editSize);
+      }
       const linkTradetron=node("button",linked ? "Change Tradetron connection" : "Connect Tradetron","menu-action");
       linkTradetron.type="button";
       linkTradetron.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-link",{detail:{id:record.deploymentId}})));
@@ -607,25 +615,24 @@
         actions.append(move);
       }
     }
-    actions.append(link("View deployment","#deployments"),link("Open positions & orders","#positions-orders"));
+    actions.append(link("View bridge","#deployments"),link("Open local paper trading","#paper-trading"));
     menu.append(toggle,actions); return menu;
   }
   function deploymentSummary(records) {
-    if (!records.length) return empty("No paper deployments","Create a paper deployment from a saved strategy, then connect its matching Tradetron paper setup.","#strategies-heading","Open strategies →");
+    if (!records.length) return empty("No Tradetron bridges","Create a bridge from a saved strategy, then connect its matching Tradetron paper strategy.","#strategies-heading","Open strategies →");
     const rows=records.map(record=>{
       const row=node("tr");
       row.append(
         deskCell("Strategy",link(record.strategy,"#deployments")),
+        deskCell("Signal size",`${record.bridge?.signal_lots || 1} lot`),
         deskCell("Tradetron",record.connection),
-        deskCell("Next",record.nextStep),
-        deskCell("Open legs",String(record.legs.length)),
-        deskCell("Open P&L",money(record.pnl),null,finite(record.pnl) && record.pnl >= 0 ? "gain" : "loss"),
+        deskCell("Sending",record.nextStep),
         deskCell("Controls",deploymentMenu(record),null,"table-controls")
       );
       return row;
     });
     const n=node("div",null,"desk-table-panel strategy-summary-table");
-    n.append(deskTable("Paper deployment summary",["Strategy","Tradetron","Next","Open legs","Open P&L","Controls"],rows,"desk-deployment-summary"));
+    n.append(deskTable("Tradetron bridge summary",["Strategy","Signal size","Tradetron","Sending","Controls"],rows,"desk-deployment-summary"));
     return n;
   }
   function deploymentBlock(record) {
@@ -638,8 +645,7 @@
     connection.classList.add("deployment-connection");
     const next=detail("Signal sending",record.nextStep || "Off");
     next.classList.add("deployment-next");
-    facts.append(connection,next,detail("Open option legs",String(record.legs.length)));
-    if(record.multiplier) facts.append(detail("Paper size",`${record.multiplier} lots`));
+    facts.append(connection,next,detail("Signal size",`${record.bridge?.signal_lots || 1} lot`),detail("Tradetron multiplier","Managed in Tradetron"));
     n.append(head,facts);
     if (record.legs.length) {
       const rows=record.legs.map(leg=>{
@@ -686,7 +692,7 @@
     text("desk-status-note",mode === "live" ? `Live execution, broker positions and account values are not connected. Last price: ${v.lastPrice ? when(v.lastPrice) : "not received"}.` : `Live execution unavailable. Paper records are separate from broker positions. Last price: ${v.lastPrice ? when(v.lastPrice) : "not received"}.`);
     // Polling must not replace a focused button or collapse expanded evidence.
     const deployments=deploymentRecords(v,input,mode);
-    // A historical replay is research evidence, not a paper deployment.  Keep
+    // A historical replay is research evidence, not a Tradetron bridge. Keep
     // it out of the deployment setup screen so users never confuse its marks
     // with a Tradetron connection or a paper order.
     const paperDeployments=deployments.filter(record=>record.deploymentId);
@@ -717,12 +723,12 @@
     text("desk-risk-note",mode === "paper" ? `Saved-paper valuation: ${when(input.paper?.valuation?.as_of)}. Charges, if present, are estimates.` : "Confirmed broker account values only.");
     const positionEmpty=()=>empty(mode === "live" ? "Broker positions unavailable" : v.current ? "No open real-quote paper executions" : "Paper positions unavailable",mode === "live" ? "An empty view does not mean your Zerodha account is flat. Broker positions and order reconciliation are not connected." : "Only executed paper quantities appear here. Historical strategy positions are shown separately.",mode === "live" ? "#kite-connection" : "#paper-trading",mode === "live" ? "Review connection limits →" : "Open paper trading →");
     $("desk-open").replaceChildren(deploymentSummary(paperDeployments));
-    $("deployment-list").replaceChildren(...(paperDeployments.length ? paperDeployments.map(deploymentBlock) : [empty("No paper deployments","Create a paper deployment from a saved strategy, then connect its matching Tradetron paper setup.","#strategies-heading","Open strategies →")]));
+    $("deployment-list").replaceChildren(...(paperDeployments.length ? paperDeployments.map(deploymentBlock) : [empty("No Tradetron bridges","Create a bridge from a saved strategy, then connect its matching Tradetron paper strategy.","#strategies-heading","Open strategies →")]));
     const savedDeploymentCount=paperDeployments.length;
     const historicalShown=deployments.some(record=>record.id === "historical-replay");
     text("deployments-scope",savedDeploymentCount
-      ? `${savedDeploymentCount} paper ${savedDeploymentCount === 1 ? "setup" : "setups"}${historicalShown ? " · Historical replay is separate." : ""}`
-      : historicalShown ? "No paper setup yet · Historical replay is separate." : "No paper setup yet.");
+      ? `${savedDeploymentCount} Tradetron ${savedDeploymentCount === 1 ? "bridge" : "bridges"}${historicalShown ? " · Local paper replay is separate." : ""}`
+      : historicalShown ? "No Tradetron bridge yet · Local paper replay is separate." : "No Tradetron bridge yet.");
     const ordered=v.groups.slice().sort((a,b)=>Number(b.strategy === selectedGroup)-Number(a.strategy === selectedGroup));
     const historical=mode === "paper" ? replayView(input.paper?.historical_replay) : null;
     const positionTables=[];

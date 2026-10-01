@@ -26,7 +26,7 @@ class Element {
 function environment(hash = '#main') {
   const roots = new Map();
   const $ = (id) => { if (!roots.has(id)) roots.set(id, new Element()); return roots.get(id); };
-  const hashes = ['#main', '#strategies-heading', '#deployments', '#research', '#kite-connection', '#positions-orders', '#activity'];
+  const hashes = ['#main', '#strategies-heading', '#deployments', '#paper-trading', '#research', '#kite-connection', '#positions-orders', '#activity'];
   const links = hashes.map((href) => { const link = new Element('a'); link.setAttribute('href', href); return link; });
   const views = ['overview', 'strategies', 'deployments', 'backtests', 'market-data', 'safety-checks', 'paper-trading', 'research', 'positions', 'activity'].map((view) => {
     const node = new Element('section'); node.dataset.view = view; return node;
@@ -48,13 +48,13 @@ test('every route synchronises the view, sidebar, breadcrumb and page title', ()
   const e = environment();
   for (const [hash, view, title] of [
     ['#main','overview','Trading desk'], ['#strategies-heading','strategies','Strategies'],
-    ['#deployments','deployments','Paper deployments'],
+    ['#deployments','deployments','Tradetron bridge'],
     ['#past-data-check','backtests','Model simulator'], ['#kite-connection','market-data','Connections'], ['#safety-checks','safety-checks','Order checks'], ['#paper-trading','paper-trading','Paper trading'],
     ['#research','research','Research'], ['#positions-orders','positions','Positions & orders'], ['#activity','activity','Activity'],
   ]) {
     e.window.location.hash = hash; e.context.updateNavigation();
     assert.deepEqual(e.views.filter(v => !v.hidden).map(v => v.dataset.view), [view]);
-    const nav={'#past-data-check':'#research','#safety-checks':'#research','#paper-trading':'#positions-orders'}[hash] || hash;
+    const nav={'#past-data-check':'#research','#safety-checks':'#research'}[hash] || hash;
     assert.deepEqual(e.links.filter(l => l.getAttribute('aria-current')).map(l => l.getAttribute('href')), [nav]);
     assert.equal(e.$('page-title').textContent, title); assert.equal(e.$('page-location').textContent, title);
     assert.equal(e.document.title, title + ' · Private Algo Desk');
@@ -65,7 +65,7 @@ test('every route synchronises the view, sidebar, breadcrumb and page title', ()
 test('backtest deep links do not select market data and reload starts at heading', () => {
   const e = environment('#past-data-check');
   assert.equal(e.$('page-title').textContent, 'Model simulator');
-  assert.equal(e.links[3].getAttribute('aria-current'), 'page');
+  assert.equal(e.links[4].getAttribute('aria-current'), 'page');
   e.window.scrolled = false; e.winEvents.load(); assert.equal(e.window.scrolled, true);
   assert.equal(e.window.history.scrollRestoration, 'manual');
 });
@@ -80,7 +80,7 @@ test('unknown and empty routes normalise to overview without dropping the query'
 
 test('navigation supports history, focus, same-link return and native modified clicks', () => {
   const e = environment(); let prevented = false;
-  const event = {target:e.links[3], button:0, preventDefault:()=>{prevented=true;}};
+  const event = {target:e.links[4], button:0, preventDefault:()=>{prevented=true;}};
   e.docEvents.click(event);
   assert.equal(prevented,true); assert.equal(e.$('page-title').focused,true);
   assert.deepEqual(e.historyCalls.at(-1), ['pushState','/?kite=connected#research']);

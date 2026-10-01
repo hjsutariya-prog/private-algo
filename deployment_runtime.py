@@ -1,4 +1,4 @@
-"""Strategy-deployment isolation for protected Tradetron paper executors.
+"""Strategy-level isolation for protected Tradetron bridges.
 
 Every deployment owns a different protected credential file and signal outbox.
 There is intentionally no fan-out, shared counter, or automatic delivery path.
@@ -43,6 +43,14 @@ class DeploymentRuntimeRegistry:
         result = dict(deployment)
         result["executor"] = link.status()
         result["runner"] = runner.status()
+        # The bridge deliberately carries no quantity or multiplier.  Every
+        # event represents one base lot; Tradetron's deployment multiplier is
+        # the only scaling authority for its Live Offline paper trades.
+        result["bridge"] = {
+            "signal_lots": 1,
+            "tradetron_multiplier": "managed_in_tradetron",
+            "sends_quantity": False,
+        }
         return result
 
     def list(self):
@@ -68,7 +76,7 @@ class DeploymentRuntimeRegistry:
             raise ValueError("Moving the legacy protected link requires its exact local confirmation.")
         deployment = self.store.get_deployment(deployment_id)
         if deployment["state"] != "not_linked":
-            raise ValueError("Move the legacy link only into an unlinked paper deployment.")
+            raise ValueError("Move the older link only into an unlinked Tradetron bridge.")
         if not self.legacy_link.details:
             raise ValueError("There is no legacy protected Tradetron link to move.")
         link, _runner = self._item(deployment_id)
@@ -86,7 +94,7 @@ class DeploymentRuntimeRegistry:
                 raise ValueError("The legacy link could not be removed, so migration was cancelled.") from None
         link.details = link.store.load()
         link.saved, link.delivery = True, "unverified"
-        link.message = "Paper executor linked. It has not yet passed an exact paper-delivery check."
+        link.message = "Tradetron bridge linked. It has not yet passed an exact delivery check."
         self.store.set_deployment_state(deployment_id, "linked_unverified")
         return self.describe(self.store.get_deployment(deployment_id))
 
@@ -103,7 +111,7 @@ class DeploymentRuntimeRegistry:
         if runner.armed:
             raise ValueError("Disarm the paper signal runner before the one-time delivery check.")
         if not link.details or not link.saved:
-            raise ValueError("Link this paper deployment's protected Tradetron executor before the delivery check.")
+            raise ValueError("Link this Tradetron bridge before the delivery check.")
         if link.details.get("strategy_id") != "999056854":
             raise ValueError("The delivery check is available only for the BANKNIFTY Portal executor paper strategy.")
         result = dispatch_snapshot_entries(link.details, snapshot)

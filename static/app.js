@@ -264,22 +264,28 @@
     const strategy = selectedStrategy();
     $("empty-detail").hidden = !!strategy;
     $("detail-content").hidden = !strategy;
+    $("edit-strategy").hidden = !strategy;
     if (!strategy) {
       $("scenario-strategy").textContent = "Create a strategy draft before running a check.";
       updateControls();
       return;
     }
     $("detail-title").textContent = strategy.name;
-    $("detail-status").textContent = "DRAFT · NOT DEPLOYED";
+    const deploymentsForStrategy = state.deployments.filter((deployment) => deployment.strategy_id === strategy.id);
+    const existingDeployment = deploymentsForStrategy.some((deployment) => deployment.strategy_version === strategy.version);
+    $("detail-status").textContent = existingDeployment ? "DRAFT · BRIDGE SAVED" : "DRAFT · NO BRIDGE";
     $("detail-updated").textContent = `Last saved ${formattedDate(strategy.updated_at || strategy.created_at)}`;
     $("detail-lots").textContent = strategySize(strategy);
     $("detail-capital").textContent = money.format(strategy.capital);
     $("detail-phase").textContent = strategy.phase ? friendly(strategy.phase) : "Draft";
     $("detail-updated").textContent += ` IST · ${strategy.version || "Version not recorded"}`;
-    $("detail-summary").textContent = "Fixed hourly BANKNIFTY rules · 500-point spot stop · 1,000-point spot target · monthly hedge rollover. This draft is not deployed.";
-    const existingDeployment = state.deployments.some((deployment) => deployment.strategy_id === strategy.id && deployment.strategy_version === strategy.version);
+    $("detail-summary").textContent = existingDeployment
+      ? "This version is connected to a Tradetron bridge. Editing local-paper size creates a new version; the bridge still sends one lot and Tradetron controls its own multiplier."
+      : deploymentsForStrategy.length
+        ? "A previous version has a Tradetron bridge. This version can be linked separately after you review local-paper size."
+        : "Fixed hourly BANKNIFTY rules · 500-point spot stop · 1,000-point spot target · monthly hedge rollover. No Tradetron bridge is linked to this draft.";
     $("deploy-strategy").disabled = saving || existingDeployment;
-    $("deploy-strategy").textContent = existingDeployment ? "Paper trading set up" : "Set up paper trading";
+    $("deploy-strategy").textContent = existingDeployment ? "Tradetron bridge set up" : "Set up Tradetron bridge";
     $("scenario-strategy").textContent = `Checking: ${strategy.name}`;
     renderRules(strategy);
     updateControls();
@@ -1876,7 +1882,7 @@
     const runner = tradetron.runner;
     const linked = status?.linked === true;
     const legacyPanel = $("tradetron-connection");
-    // New Tradetron connections belong to a paper deployment.  Only expose
+    // New Tradetron connections belong to one bridge.  Only expose
     // this migration panel when an older app-wide link really exists.
     const legacyNeedsAttention = linked || Boolean(status?.credential_storage_warning);
     if (legacyPanel) legacyPanel.hidden = !legacyNeedsAttention;
@@ -1925,10 +1931,10 @@
     activeDeploymentId = deployment?.id || null;
     const executor = deployment?.executor;
     clearTradetronInputs();
-    $("tradetron-dialog-title").textContent = deployment ? "Connect Tradetron to this paper setup" : "Replace older Tradetron link";
+    $("tradetron-dialog-title").textContent = deployment ? "Connect Tradetron to this bridge" : "Replace older Tradetron link";
     $("tradetron-dialog-description").textContent = deployment
-      ? `This connection belongs only to ${deployment.strategy_name || "this paper setup"}. It stays protected by this Windows account and is never shown again.`
-      : "New connections belong to one paper deployment. This older app-wide link can be moved from the paper deployment’s three-dot menu.";
+      ? `This connection belongs only to ${deployment.strategy_name || "this bridge"}. Each bridge sends one lot; Tradetron controls its own multiplier. It stays protected by this Windows account and is never shown again.`
+      : "New connections belong to one Tradetron bridge. This older app-wide link can be moved from that bridge’s three-dot menu.";
     $("tradetron-strategy-id").value = executor?.strategy_id || (!deployment ? tradetron.status?.strategy_id || "" : "");
     showError("tradetron-form-error", "");
     setTradetronFormBusy(false);
@@ -1974,7 +1980,7 @@
       if (!status || status.linked !== true || status.delivery !== "unverified") throw new Error("Executor link not confirmed");
       if (deployment) await loadState(); else tradetron.status = response.status;
       $("tradetron-dialog").close();
-      announce(deployment ? "Tradetron is connected to this paper setup. Automatic sending remains off." : "Older Tradetron link saved. Move it to one paper deployment before use.");
+      announce(deployment ? "Tradetron is connected to this bridge. It sends one lot; automatic sending remains off." : "Older Tradetron link saved. Move it to one bridge before use.");
     } catch (error) {
       showError("tradetron-form-error", `${error.message} The API-link field has been cleared; paste it again to retry.`);
     } finally {
@@ -2007,20 +2013,20 @@
   window.addEventListener("deployment-disconnect", async (event) => {
     const deployment = state.deployments.find((item) => item.id === event.detail?.id);
     if (!deployment || tradetron.busy) return;
-    if (!window.confirm(`Remove the protected Tradetron connection from ${deployment.strategy_name || "this paper setup"}? No signal will be sent.`)) return;
+    if (!window.confirm(`Remove the protected Tradetron connection from ${deployment.strategy_name || "this bridge"}? No signal will be sent.`)) return;
     tradetron.busy = true;
     try {
       const response = await api(`/api/deployments/${encodeURIComponent(deployment.id)}/tradetron/disconnect`, {method:"POST", body:"{}"});
       if (response.deployment?.executor?.linked !== false) throw new Error("The app did not confirm the deployment link was removed.");
       await loadState();
-      announce("Tradetron connection removed from this paper setup. Automatic sending remains off.");
+      announce("Tradetron connection removed from this bridge. Automatic sending remains off.");
     } catch (error) { showError("page-error", error.message); }
     finally { tradetron.busy = false; renderTradetron(); renderJourney(); }
   });
   window.addEventListener("deployment-migrate-legacy", async (event) => {
     const deployment = state.deployments.find((item) => item.id === event.detail?.id);
     if (!deployment || tradetron.busy) return;
-    if (!window.confirm(`Move the older protected Tradetron link into ${deployment.strategy_name || "this paper setup"}? The old app-wide copy will be removed. No signal will be sent.`)) return;
+    if (!window.confirm(`Move the older protected Tradetron link into ${deployment.strategy_name || "this bridge"}? The old app-wide copy will be removed. No signal will be sent.`)) return;
     tradetron.busy = true;
     try {
       const response = await api(`/api/deployments/${encodeURIComponent(deployment.id)}/tradetron/migrate-legacy`, {method:"POST", body:JSON.stringify({confirmation:"move-legacy-paper-link"})});
@@ -2028,9 +2034,17 @@
       tradetron.busy = false;
       await refreshTradetronStatus();
       await loadState();
-      announce("Older Tradetron link moved into this paper setup. Automatic sending remains off.");
+      announce("Older Tradetron link moved into this bridge. Automatic sending remains off.");
     } catch (error) { showError("page-error", error.message); }
     finally { tradetron.busy = false; renderTradetron(); renderJourney(); }
+  });
+  window.addEventListener("deployment-edit-size", (event) => {
+    const strategy = state.strategies.find((item) => item.id === event.detail?.strategyId);
+    if (!strategy) return;
+    selectStrategy(strategy.id);
+    window.history.pushState(null, "", window.location.pathname + window.location.search + "#strategy-detail");
+    updateNavigation({ focus: true });
+    announce("Edit local-paper base lots and multiplier. Saving creates a new strategy version; the Tradetron bridge still sends one lot.");
   });
 
   function clearKiteInputs() { $("kite-api-key").value = ""; $("kite-api-secret").value = ""; }
@@ -2328,9 +2342,9 @@
     saving = true; updateControls(); showError("deployment-create-error", "");
     try {
       const response = await api("/api/deployments", {method: "POST", body: JSON.stringify({strategy_id: strategy.id})});
-      if (!response.deployment?.id || response.deployment.mode !== "paper_only") throw new Error("The app did not confirm the paper deployment record.");
+      if (!response.deployment?.id || response.deployment.mode !== "paper_only") throw new Error("The app did not confirm the Tradetron bridge record.");
       await loadState();
-      announce("Paper setup created. Connect its Tradetron paper strategy from the Paper deployments page.");
+      announce("Tradetron bridge created. Connect its Tradetron paper strategy from the Tradetron bridge page.");
       window.location.hash = "#deployments";
     } catch (error) { showError("deployment-create-error", error.message); }
     finally { saving = false; updateControls(); }
@@ -2482,16 +2496,16 @@
 
   const workspaceRoutes = {
     "#main": { view: "overview", title: "Trading desk", description: "Protection, exposure and anything that needs your attention." },
-    "#strategies-heading": { view: "strategies", title: "Strategies", description: "Save a BANKNIFTY template, then create a separate paper setup when you want to connect it to Tradetron." },
+    "#strategies-heading": { view: "strategies", title: "Strategies", description: "Save BANKNIFTY rules and local-paper sizing. A Tradetron bridge uses the rules but always sends one lot." },
     "#strategy-detail": { view: "strategies", title: "Strategy draft", nav: "#strategies-heading", description: "Fixed rules and saved sizing for this draft." },
-    "#deployments": { view: "deployments", title: "Paper deployments", description: "One saved strategy copy, one Tradetron paper connection. This app cannot place Zerodha orders." },
+    "#deployments": { view: "deployments", title: "Tradetron bridge", description: "Sends one-lot runtime signals to Tradetron. Tradetron controls multiplier and paper trade size." },
     "#positions-orders": { view: "positions", title: "Positions & orders", description: "Executed quantities, protection and outstanding orders. Modes never share records." },
     "#research": { view: "research", title: "Research", description: "Historical simulations and artificial checks, separate from trading." },
     "#activity": { view: "activity", title: "Activity", description: "Order events for the selected mode. Research signals remain in their reports." },
     "#past-data-check": { view: "backtests", title: "Model simulator", nav: "#research", description: "Historical research with independent settings—not a saved strategy test." },
     "#kite-connection": { view: "market-data", title: "Connections", description: "Connect prices, not trading. Live execution is unavailable." },
     "#safety-checks": { view: "safety-checks", title: "Order checks", nav: "#research", description: "Artificial scenarios test order behaviour—not market performance." },
-    "#paper-trading": { view: "paper-trading", title: "Paper trading", nav: "#positions-orders", description: "September strategy replay and separate real-quote order tests. No automatic trading." },
+    "#paper-trading": { view: "paper-trading", title: "Paper trading", description: "In-house paper orders, prices and results. Separate from Tradetron." },
   };
   let activeWorkspaceHash = null;
 

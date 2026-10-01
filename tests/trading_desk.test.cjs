@@ -37,13 +37,16 @@ test('deployment summary keeps a historical replay separate from paper execution
 test('saved deployments expose only their own paper executor state',()=>{
   const input={state:{deployments:[
     {id:'one',mode:'paper_only',strategy_name:'One',strategy_version:'v1',state:'linked_unverified',updated_at:at,multiplier:4,
+      bridge:{signal_lots:1,tradetron_multiplier:'managed_in_tradetron',sends_quantity:false},
       executor:{linked:true,strategy_id:'999056854',delivery:'unverified'},runner:{mode:'paper_only',armed:false,automatic_runner:'unavailable'}},
     {id:'two',mode:'paper_only',strategy_name:'Two',strategy_version:'v1',state:'not_linked',updated_at:at,multiplier:1,
+      bridge:{signal_lots:1,tradetron_multiplier:'managed_in_tradetron',sends_quantity:false},
       executor:{linked:false},runner:{mode:'paper_only',armed:false,automatic_runner:'unavailable'}}
   ]}};
   const records=deploymentRecords({groups:[]},input,'paper');
   assert.equal(records.length,2);
   assert.equal(records[0].deploymentId,'one');assert.match(records[0].status,/Link saved/);assert.equal(records[0].executor.strategy_id,'999056854');
+  assert.equal(records[0].execution,'Bridge');assert.equal(records[0].bridge.signal_lots,1);assert.equal(records[0].bridge.sends_quantity,false);
   assert.equal(records[1].deploymentId,'two');assert.match(records[1].status,/Not linked/);assert.match(records[1].note,/Connect Tradetron/);
   assert.equal(records[0].runner.armed,false);
 });

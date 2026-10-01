@@ -814,7 +814,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._respond(200, {"deployment": self.server.deployment_runtimes.configure(deployment_id, payload)})
             elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/tradetron/disconnect"):
                 if payload:
-                    raise ValueError("Disconnecting a paper deployment does not take settings.")
+                    raise ValueError("Disconnecting a Tradetron bridge does not take settings.")
                 deployment_id = route.split("/")[3]
                 self._respond(200, {"deployment": self.server.deployment_runtimes.disconnect(deployment_id)})
             elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/tradetron/migrate-legacy"):

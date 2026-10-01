@@ -50,7 +50,9 @@ class DeliveryTests(unittest.TestCase):
 
     def test_entry_values_arrive_before_directional_sequence_trigger(self):
         ce, _ = snapshot_entries(snapshot(), current_date=date(2026, 10, 1))
-        self.assertEqual([item.name for item in entry_updates(ce)], ["pa_ce_expiry_offset", "pa_ce_short_strike", "pa_ce_hedge_strike", "pa_ce_entry_seq"])
+        names = [item.name for item in entry_updates(ce)]
+        self.assertEqual(names, ["pa_ce_expiry_offset", "pa_ce_short_strike", "pa_ce_hedge_strike", "pa_ce_entry_seq"])
+        self.assertFalse(any("quantity" in name or "lot" in name or "multiplier" in name for name in names))
 
     def test_exit_and_hedge_replacement_have_only_the_runtime_values_the_template_uses(self):
         exit_signal = {"event_id": "exit-pe-20261001-002", "event_type": "exit", "direction": "PE", "sequence": 2,

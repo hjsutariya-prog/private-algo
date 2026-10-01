@@ -216,6 +216,11 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(linked["deployment"]["runner"]["mode"], "paper_only")
         self.assertFalse(linked["deployment"]["runner"]["armed"])
         self.assertEqual(linked["deployment"]["runner"]["automatic_runner"], "unavailable")
+        self.assertEqual(linked["deployment"]["bridge"], {
+            "signal_lots": 1,
+            "tradetron_multiplier": "managed_in_tradetron",
+            "sends_quantity": False,
+        })
         self.assertNotIn(fixture_token, json.dumps(linked))
         status, saved, _ = self.request("GET", "/api/deployments")
         self.assertEqual(status, 200)
