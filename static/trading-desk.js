@@ -162,12 +162,26 @@
     const records=[];
     for (const deployment of input?.state?.deployments || []) {
       if (deployment?.mode !== "paper_only") continue;
+      const executor=deployment.executor || {};
+      const runner=deployment.runner || {};
+      const linked=executor.linked === true;
+      const status=linked
+        ? deployment.state === "linked_unverified" ? "Link saved · paper check required"
+          : deployment.state === "paper_ready" ? "Paper ready · not running"
+          : deployment.state === "paper_running" ? "Paper running"
+          : deployment.state === "paused" ? "Paper paused"
+          : deployment.state === "blocked" ? "Paper blocked"
+          : "Paper setup pending"
+        : "Not linked · not running";
       records.push({
         id:"saved-deployment:"+deployment.id, strategy:deployment.strategy_name || "BANKNIFTY strategy",
-        execution:"Paper", status:deployment.state === "not_linked" ? "Not linked · not running" : "Paper setup pending",
+        execution:"Paper", status,
         valuationAt:deployment.updated_at || deployment.created_at, multiplier:deployment.multiplier,
         legs:[], pnl:null,
-        note:`Saved paper deployment · ${deployment.strategy_version || "version unavailable"}. Link its own Tradetron executor before it can receive signals.`,
+        deploymentId:deployment.id, deploymentState:deployment.state, executor, runner,
+        note:linked
+          ? `Saved paper deployment · ${deployment.strategy_version || "version unavailable"}. Its own Tradetron link is protected on this Windows account; automatic sending remains off.`
+          : `Saved paper deployment · ${deployment.strategy_version || "version unavailable"}. Link its own Tradetron executor before it can receive signals.`,
       });
     }
     const historical=liveReplayView(input?.paper?.historical_replay,input,now);
@@ -555,7 +569,26 @@
     const statistics=node("button","Statistics","menu-action");
     statistics.type="button";
     statistics.addEventListener("click",()=>showStatistics(record));
-    actions.append(runtime,statistics,link("View deployment","#deployments"),link("Open positions & orders","#positions-orders"));
+    actions.append(runtime,statistics);
+    if(record.deploymentId) {
+      const linked=record.executor?.linked === true;
+      const linkExecutor=node("button",linked ? "Replace executor link" : "Link paper executor","menu-action");
+      linkExecutor.type="button";
+      linkExecutor.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-link",{detail:{id:record.deploymentId}})));
+      actions.append(linkExecutor);
+      if(linked) {
+        const disconnect=node("button","Remove executor link","menu-action");
+        disconnect.type="button";
+        disconnect.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-disconnect",{detail:{id:record.deploymentId}})));
+        actions.append(disconnect);
+      } else if(input.tradetron?.linked === true) {
+        const move=node("button","Move legacy link here","menu-action");
+        move.type="button";
+        move.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-migrate-legacy",{detail:{id:record.deploymentId}})));
+        actions.append(move);
+      }
+    }
+    actions.append(link("View deployment","#deployments"),link("Open positions & orders","#positions-orders"));
     menu.append(toggle,actions); return menu;
   }
   function deploymentSummary(records) {
@@ -580,7 +613,7 @@
     const n=node("article",null,"deployment-card");
     const head=node("div",null,"deployment-card-head"), title=node("div");
     title.append(node("h2",record.strategy),node("p",record.note,"essential-note"));
-    head.append(title,node("span",record.execution,"deployment-execution"),node("span",record.status,"state-label deployment-status"+(record.status === "Needs review" ? " warning" : "")));
+    head.append(title,node("span",record.execution,"deployment-execution"),node("span",record.status,"state-label deployment-status"+(record.status === "Needs review" ? " warning" : "")),deploymentMenu(record));
     const facts=node("dl",null,"deployment-facts");
     facts.append(detail("Valued through",when(record.valuationAt)),detail("Open legs",String(record.legs.length)));
     if(record.multiplier) facts.append(detail("Paper size",`1 × ${record.multiplier} = ${record.multiplier} lots`));

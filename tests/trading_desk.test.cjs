@@ -34,6 +34,19 @@ test('deployment summary keeps a historical replay separate from paper execution
   assert.equal(records[0].legs[0].entry,100);assert.equal(records[0].legs[0].mark,90);
   assert.deepEqual(deploymentRecords({groups:[]},{paper:{historical_replay:historical}},'live'),[]);
 });
+test('saved deployments expose only their own paper executor state',()=>{
+  const input={state:{deployments:[
+    {id:'one',mode:'paper_only',strategy_name:'One',strategy_version:'v1',state:'linked_unverified',updated_at:at,multiplier:4,
+      executor:{linked:true,strategy_id:'999056854',delivery:'unverified'},runner:{mode:'paper_only',armed:false,automatic_runner:'unavailable'}},
+    {id:'two',mode:'paper_only',strategy_name:'Two',strategy_version:'v1',state:'not_linked',updated_at:at,multiplier:1,
+      executor:{linked:false},runner:{mode:'paper_only',armed:false,automatic_runner:'unavailable'}}
+  ]}};
+  const records=deploymentRecords({groups:[]},input,'paper');
+  assert.equal(records.length,2);
+  assert.equal(records[0].deploymentId,'one');assert.match(records[0].status,/Link saved/);assert.equal(records[0].executor.strategy_id,'999056854');
+  assert.equal(records[1].deploymentId,'two');assert.match(records[1].status,/Not linked/);assert.match(records[1].note,/its own Tradetron executor/);
+  assert.equal(records[0].runner.armed,false);
+});
 test('fresh stream quotes update only open replay legs and never turn them into fills',()=>{
   const at=new Date(now).toISOString(), historical={snapshot:{kind:'historical_paper_replay',is_execution:false,
     validation_status:'validated',as_of:'2026-09-30T10:00:00Z',combined:{open_net:250},legs:[

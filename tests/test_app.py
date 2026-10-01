@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from app import LocalServer
+from deployment_runtime import DeploymentRuntimeRegistry, MIGRATION_CONFIRMATION
 from scenarios import CATALOG, run_scenario
 from store import Store
 from tradetron_link import TradetronLinkState, TradetronLinkStore
@@ -71,6 +72,13 @@ class StoreTests(unittest.TestCase):
         self.assertNotEqual(deployment["strategy_version"], changed["version"])
         self.assertEqual(self.store.get_deployment(deployment["id"])["lots"], 1)
         self.assertEqual(self.store.create_deployment({"strategy_id": draft["id"]})["strategy_version"], changed["version"])
+
+    def test_paper_deployment_lifecycle_rejects_unknown_states(self):
+        deployment = self.store.create_deployment({"strategy_id": self.store.list_strategies()[0]["id"]})
+        ready = self.store.set_deployment_state(deployment["id"], "paper_ready")
+        self.assertEqual(ready["state"], "paper_ready")
+        with self.assertRaises(ValueError):
+            self.store.set_deployment_state(deployment["id"], "live_running")
 
     def test_no_live_status_or_credentials_can_be_saved(self):
         draft = self.store.list_strategies()[0]
@@ -141,6 +149,7 @@ class ApiTests(unittest.TestCase):
         # DPAPI profile. The production server still uses WindowsProtection.
         cls.server.tradetron = TradetronLinkState(TradetronLinkStore(
             Path(cls.temp.name) / "api-tradetron.dpapi", TestOnlyProtection()))
+        cls.server.deployment_runtimes = DeploymentRuntimeRegistry(cls.server.store, Path(cls.temp.name), cls.server.tradetron)
         cls.port = cls.server.server_address[1]
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
@@ -189,6 +198,60 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(saved["deployments"][0]["id"], deployment["id"])
         status, _, _ = self.request("POST", "/api/deployments", {"strategy_id": strategy["id"]})
         self.assertEqual(status, 400)
+
+    def test_each_paper_deployment_has_an_isolated_executor_and_outbox(self):
+        first = self.request("POST", "/api/strategies", {"name": "Executor isolation A", "lots": 1, "capital": 100000})[1]["strategy"]
+        second = self.request("POST", "/api/strategies", {"name": "Executor isolation B", "lots": 1, "capital": 100000})[1]["strategy"]
+        first_deployment = self.request("POST", "/api/deployments", {"strategy_id": first["id"]})[1]["deployment"]
+        second_deployment = self.request("POST", "/api/deployments", {"strategy_id": second["id"]})[1]["deployment"]
+        fixture_token = "22222222-2222-4222-8222-222222222222"
+        fixture_link = "https://api.tradetron.tech/api?auth-token=" + fixture_token + "&key=api_buy&value=1"
+        status, linked, _ = self.request("POST", f"/api/deployments/{first_deployment['id']}/tradetron/link", {
+            "strategy_id": "999056854", "api_link": fixture_link, "remember": True,
+        })
+        self.assertEqual(status, 200)
+        self.assertEqual(linked["deployment"]["state"], "linked_unverified")
+        self.assertTrue(linked["deployment"]["executor"]["linked"])
+        self.assertEqual(linked["deployment"]["executor"]["strategy_id"], "999056854")
+        self.assertEqual(linked["deployment"]["runner"]["mode"], "paper_only")
+        self.assertFalse(linked["deployment"]["runner"]["armed"])
+        self.assertEqual(linked["deployment"]["runner"]["automatic_runner"], "unavailable")
+        self.assertNotIn(fixture_token, json.dumps(linked))
+        status, saved, _ = self.request("GET", "/api/deployments")
+        self.assertEqual(status, 200)
+        deployments = {item["id"]: item for item in saved["deployments"]}
+        self.assertTrue(deployments[first_deployment["id"]]["executor"]["linked"])
+        self.assertFalse(deployments[second_deployment["id"]]["executor"]["linked"])
+        first_runner = self.server.deployment_runtimes._item(first_deployment["id"])[1]
+        second_runner = self.server.deployment_runtimes._item(second_deployment["id"])[1]
+        self.assertNotEqual(first_runner.store.path, second_runner.store.path)
+        self.assertEqual(first_runner.status()["pending_events"], 0)
+        self.assertEqual(second_runner.status()["pending_events"], 0)
+        status, removed, _ = self.request("POST", f"/api/deployments/{first_deployment['id']}/tradetron/disconnect", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(removed["deployment"]["state"], "not_linked")
+        self.assertFalse(removed["deployment"]["executor"]["linked"])
+
+    def test_legacy_link_can_only_move_once_into_one_unlinked_deployment(self):
+        self.server.tradetron.clear()
+        strategy = self.request("POST", "/api/strategies", {"name": "Legacy migration target", "lots": 1, "capital": 100000})[1]["strategy"]
+        deployment = self.request("POST", "/api/deployments", {"strategy_id": strategy["id"]})[1]["deployment"]
+        fixture_token = "33333333-3333-4333-8333-333333333333"
+        fixture_link = "https://api.tradetron.tech/api?auth-token=" + fixture_token + "&key=api_buy&value=1"
+        self.server.tradetron.configure({"strategy_id": "999056854", "api_link": fixture_link, "remember": True})
+        status, rejected, _ = self.request("POST", f"/api/deployments/{deployment['id']}/tradetron/migrate-legacy", {"confirmation": "wrong"})
+        self.assertEqual(status, 400)
+        self.assertIn("exact local confirmation", rejected["error"])
+        self.assertTrue(self.server.tradetron.status()["linked"])
+        status, moved, _ = self.request("POST", f"/api/deployments/{deployment['id']}/tradetron/migrate-legacy", {"confirmation": MIGRATION_CONFIRMATION})
+        self.assertEqual(status, 200)
+        self.assertTrue(moved["deployment"]["executor"]["linked"])
+        self.assertEqual(moved["deployment"]["state"], "linked_unverified")
+        self.assertFalse(self.server.tradetron.status()["linked"])
+        self.assertNotIn(fixture_token, json.dumps(moved))
+        status, repeated, _ = self.request("POST", f"/api/deployments/{deployment['id']}/tradetron/migrate-legacy", {"confirmation": MIGRATION_CONFIRMATION})
+        self.assertEqual(status, 400)
+        self.assertIn("unlinked", repeated["error"])
 
     def test_tradetron_link_exposes_locked_signal_contract_and_cannot_send_orders(self):
         fixture_token = "11111111-1111-4111-8111-111111111111"

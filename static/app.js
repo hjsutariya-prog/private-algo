@@ -5,6 +5,7 @@
   const state = { strategies: [], deployments: [], scenario_catalog: [], recent_runs: [] };
   const kite = { status: null, instruments: null, quote: null, busy: false, expiryTimer: null };
   const tradetron = { status: null, runner: null, busy: false };
+  let activeDeploymentId = null;
   const replay = { busy: false, version: 0, jobId: null, progress: null, cancelRequested: false, cancelSent: false, settingsKey: null };
   let selectedId = null;
   let editingId = null;
@@ -1909,10 +1910,20 @@
     } finally { tradetron.busy = false; renderTradetron(); renderJourney(); }
   }
 
-  function openTradetronForm() {
+  function activeDeployment() {
+    return state.deployments.find((deployment) => deployment.id === activeDeploymentId) || null;
+  }
+
+  function openTradetronForm(deployment = null) {
     if (tradetron.busy) return;
+    activeDeploymentId = deployment?.id || null;
+    const executor = deployment?.executor;
     clearTradetronInputs();
-    $("tradetron-strategy-id").value = tradetron.status?.strategy_id || "";
+    $("tradetron-dialog-title").textContent = deployment ? "Link this paper deployment" : "Link legacy Tradetron executor";
+    $("tradetron-dialog-description").textContent = deployment
+      ? `This link belongs only to ${deployment.strategy_name || "this paper deployment"}. It stays protected by this Windows account and is never shown again.`
+      : "This old app-wide link can be moved into one paper deployment from that deployment’s three-dot menu.";
+    $("tradetron-strategy-id").value = executor?.strategy_id || (!deployment ? tradetron.status?.strategy_id || "" : "");
     showError("tradetron-form-error", "");
     setTradetronFormBusy(false);
     $("tradetron-dialog").showModal();
@@ -1921,7 +1932,10 @@
 
   function closeTradetronForm() {
     clearTradetronInputs();
-    if (!tradetron.busy) $("tradetron-dialog").close();
+    if (!tradetron.busy) {
+      $("tradetron-dialog").close();
+      activeDeploymentId = null;
+    }
   }
 
   function setTradetronFormBusy(busy) {
@@ -1933,7 +1947,7 @@
   $("tradetron-close-dialog").addEventListener("click", closeTradetronForm);
   $("tradetron-cancel-dialog").addEventListener("click", closeTradetronForm);
   $("tradetron-dialog").addEventListener("cancel", (event) => { clearTradetronInputs(); if (tradetron.busy) event.preventDefault(); });
-  $("tradetron-dialog").addEventListener("close", clearTradetronInputs);
+  $("tradetron-dialog").addEventListener("close", () => { clearTradetronInputs(); activeDeploymentId = null; });
   window.addEventListener("pagehide", clearTradetronInputs);
   $("tradetron-config-form").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -1945,15 +1959,18 @@
     renderTradetron();
     showError("tradetron-form-error", "");
     try {
-      const pending = api("/api/tradetron/link", { method: "POST", body: JSON.stringify(payload) });
+      const deployment = activeDeployment();
+      const endpoint = deployment ? `/api/deployments/${encodeURIComponent(deployment.id)}/tradetron/link` : "/api/tradetron/link";
+      const pending = api(endpoint, { method: "POST", body: JSON.stringify(payload) });
       payload = null;
       const response = await pending;
-      if (!response.status || response.status.linked !== true || response.status.delivery !== "unverified") throw new Error("Executor link not confirmed");
-      tradetron.status = response.status;
+      const status = deployment ? response.deployment?.executor : response.status;
+      if (!status || status.linked !== true || status.delivery !== "unverified") throw new Error("Executor link not confirmed");
+      if (deployment) await loadState(); else tradetron.status = response.status;
       $("tradetron-dialog").close();
-      announce("Tradetron paper executor linked with Windows account protection. It has not yet passed a paper-delivery check.");
+      announce(deployment ? "Paper deployment executor linked with Windows account protection. Automatic sending remains off." : "Legacy Tradetron paper executor linked with Windows account protection. Move it into a paper deployment before using it.");
     } catch (error) {
-      showError("tradetron-form-error", `${error.message} The API link has been cleared; paste it again to retry.`);
+      showError("tradetron-form-error", `${error.message} The API-link field has been cleared; paste it again to retry.`);
     } finally {
       payload = null;
       clearTradetronInputs();
@@ -1974,6 +1991,39 @@
       tradetron.status = response.status;
       announce("Tradetron paper executor link removed. No Tradetron signals can be sent.");
     } catch (error) { showError("tradetron-error", error.message); }
+    finally { tradetron.busy = false; renderTradetron(); renderJourney(); }
+  });
+
+  window.addEventListener("deployment-link", (event) => {
+    const deployment = state.deployments.find((item) => item.id === event.detail?.id);
+    if (deployment) openTradetronForm(deployment);
+  });
+  window.addEventListener("deployment-disconnect", async (event) => {
+    const deployment = state.deployments.find((item) => item.id === event.detail?.id);
+    if (!deployment || tradetron.busy) return;
+    if (!window.confirm(`Remove the protected Tradetron link from ${deployment.strategy_name || "this paper deployment"}? No signal will be sent.`)) return;
+    tradetron.busy = true;
+    try {
+      const response = await api(`/api/deployments/${encodeURIComponent(deployment.id)}/tradetron/disconnect`, {method:"POST", body:"{}"});
+      if (response.deployment?.executor?.linked !== false) throw new Error("The app did not confirm the deployment link was removed.");
+      await loadState();
+      announce("Paper deployment executor link removed. Automatic sending remains off.");
+    } catch (error) { showError("page-error", error.message); }
+    finally { tradetron.busy = false; renderTradetron(); renderJourney(); }
+  });
+  window.addEventListener("deployment-migrate-legacy", async (event) => {
+    const deployment = state.deployments.find((item) => item.id === event.detail?.id);
+    if (!deployment || tradetron.busy) return;
+    if (!window.confirm(`Move the old protected Tradetron link into ${deployment.strategy_name || "this paper deployment"}? The old app-wide copy will be removed. No signal will be sent.`)) return;
+    tradetron.busy = true;
+    try {
+      const response = await api(`/api/deployments/${encodeURIComponent(deployment.id)}/tradetron/migrate-legacy`, {method:"POST", body:JSON.stringify({confirmation:"move-legacy-paper-link"})});
+      if (response.deployment?.executor?.linked !== true) throw new Error("The app did not confirm the moved deployment link.");
+      tradetron.busy = false;
+      await refreshTradetronStatus();
+      await loadState();
+      announce("Legacy link moved into this paper deployment. Automatic sending remains off.");
+    } catch (error) { showError("page-error", error.message); }
     finally { tradetron.busy = false; renderTradetron(); renderJourney(); }
   });
 

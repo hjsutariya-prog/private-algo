@@ -9,6 +9,7 @@ import sqlite3
 from uuid import uuid4
 
 READINESS = ["Order execution service", "Streaming market data", "Verified exchange calendar", "Real-quote paper tests", "Live approval"]
+DEPLOYMENT_STATES = frozenset(("not_linked", "linked_unverified", "paper_ready", "paper_running", "paused", "blocked", "stopped"))
 RULES = {
     "signal": "Completed BANKNIFTY spot hourly candles anchored at 09:15 IST; strict 1,000-point crossings.",
     "short_selection": "Monthly ATM/ITM option with quoted premium closest to ₹1,000. Not a guaranteed fill.",
@@ -140,6 +141,14 @@ class Store:
         except sqlite3.IntegrityError as exc:
             raise ValueError("This exact strategy version already has a paper deployment. Edit the draft first to create a separate deployment version.") from exc
         return self.get_deployment(identity)
+
+    def set_deployment_state(self, deployment_id, state):
+        if state not in DEPLOYMENT_STATES:
+            raise ValueError("Unknown paper deployment state.")
+        self.get_deployment(deployment_id)
+        with self.connect() as db:
+            db.execute("UPDATE deployments SET state=?,updated_at=? WHERE id=?", (state, timestamp(), deployment_id))
+        return self.get_deployment(deployment_id)
 
     def validate(self, values):
         if not isinstance(values, dict) or set(values) - {"name", "lots", "multiplier", "capital"}:

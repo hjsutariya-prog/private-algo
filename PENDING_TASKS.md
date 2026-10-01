@@ -44,6 +44,8 @@ Latest pricing update: recorded option observations now take precedence over est
 - [ ] Run the full path with actual market-hours Zerodha quotes after reconnection. Do not mark synthetic tests as real acceptance.
 - [x] Separate passing connectivity/round-trip checks from multi-session strategy validation.
 - [x] Store validated Tradetron paper entry, exit and hedge-replacement events locally; never mistake an API acknowledgement for an execution or retry an uncertain request.
+- [x] Keep a protected Tradetron link, signal counters and paper outbox per saved deployment; provide a one-time local migration from the older app-wide link.
+- [x] Record deployment lifecycle states without claiming that linking starts a runner or enables live trading.
 - [ ] Connect and validate an autonomous strategy runner across complete sessions, rollover and reconnects before declaring deployment readiness.
 
 ## Evidence from this implementation

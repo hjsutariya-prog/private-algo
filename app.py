@@ -29,6 +29,7 @@ from credential_store import CredentialStore, CredentialStoreError
 from tradetron_delivery import TradetronDeliveryError, dispatch_snapshot_entries
 from tradetron_link import TradetronLinkState, TradetronLinkStore
 from tradetron_runtime import TradetronSignalRuntime
+from deployment_runtime import DeploymentRuntimeRegistry
 
 ROOT = Path(__file__).resolve().parent
 ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
@@ -658,6 +659,7 @@ class LocalServer(ThreadingHTTPServer):
                 store.path.parent / (store.path.stem + "-tradetron.dpapi")))
             self.tradetron_runtime = TradetronSignalRuntime(
                 self.tradetron, store.path.parent / (store.path.stem + "-tradetron-events.sqlite3"))
+            self.deployment_runtimes = DeploymentRuntimeRegistry(store, store.path.parent, self.tradetron)
         except Exception:
             super().server_close()
             raise
@@ -751,7 +753,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._respond(200, {"mode": "offline", "live_enabled": False,
                                      "broker": {"name": "Zerodha", "connected": self.server.kite.status(self.server.server_address[1])["connected"]},
                                      "strategies": strategies,
-                                     "deployments": self.server.store.list_deployments(),
+                                     "deployments": self.server.deployment_runtimes.list(),
                                      "scenario_catalog": CATALOG,
                                      "recent_runs": self.server.store.recent_runs()})
             elif route == "/api/kite/status":
@@ -776,7 +778,7 @@ class Handler(BaseHTTPRequestHandler):
             elif route == "/api/backtests":
                 self._respond(200, {"backtests": self.server.store.recent_backtests()})
             elif route == "/api/deployments":
-                self._respond(200, {"deployments": self.server.store.list_deployments()})
+                self._respond(200, {"deployments": self.server.deployment_runtimes.list()})
             elif route.startswith("/api/backtests/"):
                 self._respond(200, {"backtest": self.server.store.get_backtest(route.rsplit("/", 1)[1])})
             elif route.startswith("/api/runs/"):
@@ -805,7 +807,21 @@ class Handler(BaseHTTPRequestHandler):
             if self.command == "POST" and route == "/api/strategies":
                 self._respond(201, {"strategy": self.server.store.create_strategy(payload)})
             elif self.command == "POST" and route == "/api/deployments":
-                self._respond(201, {"deployment": self.server.store.create_deployment(payload)})
+                deployment = self.server.store.create_deployment(payload)
+                self._respond(201, {"deployment": self.server.deployment_runtimes.describe(deployment)})
+            elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/tradetron/link"):
+                deployment_id = route.split("/")[3]
+                self._respond(200, {"deployment": self.server.deployment_runtimes.configure(deployment_id, payload)})
+            elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/tradetron/disconnect"):
+                if payload:
+                    raise ValueError("Disconnecting a paper deployment does not take settings.")
+                deployment_id = route.split("/")[3]
+                self._respond(200, {"deployment": self.server.deployment_runtimes.disconnect(deployment_id)})
+            elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/tradetron/migrate-legacy"):
+                if set(payload) != {"confirmation"}:
+                    raise ValueError("Moving the legacy protected link requires its local confirmation.")
+                deployment_id = route.split("/")[3]
+                self._respond(200, {"deployment": self.server.deployment_runtimes.migrate_legacy(deployment_id, payload["confirmation"])})
             elif self.command == "PATCH" and route.startswith("/api/strategies/"):
                 self._respond(200, {"strategy": self.server.store.update_strategy(route.rsplit("/", 1)[1], payload)})
             elif self.command == "POST" and route == "/api/scenarios/run":

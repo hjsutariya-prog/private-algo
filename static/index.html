@@ -6,8 +6,8 @@
   <meta name="color-scheme" content="dark">
   <title>Trading desk · Private Algo Desk</title>
   <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/trading-desk.js?v=20261001-statistics1" defer></script>
-  <script src="/static/app.js?v=20261001-performance8" defer></script>
+  <script src="/static/trading-desk.js?v=20261001-deployments1" defer></script>
+  <script src="/static/app.js?v=20261001-deployments1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#page-title">Skip to content</a>
@@ -90,10 +90,10 @@
           <details class="connection-help"><summary>Connection setup help</summary><p>Set this exact <strong>Redirect URL</strong> in your Kite Connect app settings before signing in:</p><code id="kite-redirect-url">http://127.0.0.1:8765/api/kite/callback</code><p>Enter your API key and secret only in the local setup form, never in chat. Choose Remember to keep them protected by your Windows account across restarts. Zerodha sign-in is still required each day and after an app restart.</p></details>
         </section>
         <section class="panel connection-panel" id="tradetron-connection" aria-labelledby="tradetron-title">
-          <div class="connection-header"><div><h2 id="tradetron-title">Tradetron signal bridge</h2><p class="section-description">Sends only portal-approved runtime values to the selected Tradetron deployment. It never sends Zerodha orders.</p></div><div class="connection-actions"><button class="button secondary compact" id="tradetron-configure" type="button">Link Tradetron executor</button></div></div>
+          <div class="connection-header"><div><h2 id="tradetron-title">Legacy Tradetron link</h2><p class="section-description">New links belong to a specific paper deployment. Use that deployment’s three-dot menu; this panel is only for an older app-wide link.</p></div><div class="connection-actions"><button class="button secondary compact" id="tradetron-configure" type="button">Link legacy executor</button></div></div>
           <div id="tradetron-error" class="notice error" role="alert" hidden></div>
           <div class="connection-grid"><div class="connection-state"><div class="section-heading"><h3>Executor link</h3><span class="badge quiet" id="tradetron-status-badge">CHECKING</span></div><p class="connection-message" id="tradetron-message">Checking the local executor link…</p><dl class="connection-facts"><div><dt>Strategy</dt><dd id="tradetron-strategy-status">Not linked</dd></div><div><dt>Delivery</dt><dd id="tradetron-delivery-status">Locked</dd></div><div><dt>Signal runner</dt><dd id="tradetron-runner-status">Not checked</dd></div><div><dt>Storage</dt><dd id="tradetron-storage-status">Not checked</dd></div></dl><button class="button secondary compact" id="tradetron-forget" type="button" hidden>Forget executor link</button></div></div>
-          <p class="essential-note">The portal can retain separate call and put entry, exit, and hedge-replacement events. A Tradetron API acknowledgement only means it received a runtime value, not that an execution happened. Automatic sending is not connected yet; this app never sends broker orders.</p>
+          <p class="essential-note">Move a saved legacy link into one deployment before future paper use. Each deployment keeps its own counters and outbox. Automatic sending is not connected yet; this app never sends broker orders.</p>
         </section>
         <section class="panel paper-panel" aria-labelledby="stream-title">
           <div class="section-heading"><h2 id="stream-title">Live prices</h2><span id="stream-badge" class="badge quiet">NOT STARTED</span></div>
