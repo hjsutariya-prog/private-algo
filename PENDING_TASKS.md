@@ -46,6 +46,8 @@ Latest pricing update: recorded option observations now take precedence over est
 - [x] Store validated Tradetron paper entry, exit and hedge-replacement events locally; never mistake an API acknowledgement for an execution or retry an uncertain request.
 - [x] Keep a protected Tradetron link, signal counters and paper outbox per saved deployment; provide a one-time local migration from the older app-wide link.
 - [x] Record deployment lifecycle states without claiming that linking starts a runner or enables live trading.
+- [x] Build the paper-only 09:15-anchored BANKNIFTY signal producer: fixed close-based 500/1,000-point risk, independent CE/PE state, 500-point strike selection, next-month hedge rollover and duplicate-event protection.
+- [x] Keep every Tradetron runtime update fail-closed until its matching paper execution is manually confirmed; an API acknowledgement is never treated as a fill.
 - [ ] Connect and validate an autonomous strategy runner across complete sessions, rollover and reconnects before declaring deployment readiness.
 
 ## Evidence from this implementation

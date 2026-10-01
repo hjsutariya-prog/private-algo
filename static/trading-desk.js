@@ -175,10 +175,11 @@
       const connectionNote=linked
         ? `Tradetron paper strategy ${executor.strategy_id || "not recorded"}`
         : "Connect its matching Tradetron paper strategy";
+      const automatic=runner.automatic_runner;
       const nextStep=!linked ? "Connect Tradetron"
         : deployment.state === "linked_unverified" ? "Run delivery check"
-        : deployment.state === "paper_ready" ? "Automatic sends are off"
-        : deployment.state === "paper_running" ? "Bridge signals running"
+        : deployment.state === "paper_ready" ? automatic === "blocked" ? "Review pending paper signal" : "Automatic sends are off"
+        : deployment.state === "paper_running" ? automatic === "waiting_for_confirmation" ? "Confirm Tradetron paper execution" : "Bridge signals running"
         : deployment.state === "paused" ? "Bridge paused"
         : deployment.state === "blocked" ? "Review Tradetron bridge"
         : "Review Tradetron bridge";
@@ -199,7 +200,9 @@
         legs:[], pnl:null,
         deploymentId:deployment.id, deploymentState:deployment.state, executor, runner,
         note:linked
-          ? connectionNote
+          ? automatic === "waiting_for_confirmation" ? "Tradetron accepted a runtime update. Confirm its matching paper execution before another signal can be sent."
+            : automatic === "blocked" ? runner.strategy?.message || "This bridge stopped safely. Review Tradetron before resuming."
+            : connectionNote
           : "Connect Tradetron to complete this bridge.",
       });
     }
@@ -694,7 +697,7 @@
     // it out of the deployment setup screen so users never confuse its marks
     // with a Tradetron connection or a paper order.
     const paperDeployments=deployments.filter(record=>record.deploymentId);
-    const key=JSON.stringify([mode,v.active,v.current,v.protection,v.pricesFresh,v.orders,v.groups.map(g=>[g.key,g.protection,g.pnl,g.legs.map(l=>[l.entry,l.mark,l.basis])]),deployments.map(d=>[d.id,d.status,d.valuationAt,d.multiplier,d.pnl,d.legs.map(l=>[l.mark,l.pnl,l.liveMark])]),v.issues,v.activity,v.drafts,input.paper?.historical_replay,input.live?.account,input.tradetron?.linked,input.tradetron?.delivery,input.tradetron?.strategy_id]);
+    const key=JSON.stringify([mode,v.active,v.current,v.protection,v.pricesFresh,v.orders,v.groups.map(g=>[g.key,g.protection,g.pnl,g.legs.map(l=>[l.entry,l.mark,l.basis])]),deployments.map(d=>[d.id,d.status,d.nextStep,d.note,d.runner?.automatic_runner,d.runner?.strategy?.message,d.valuationAt,d.multiplier,d.pnl,d.legs.map(l=>[l.mark,l.pnl,l.liveMark])]),v.issues,v.activity,v.drafts,input.paper?.historical_replay,input.live?.account,input.tradetron?.linked,input.tradetron?.delivery,input.tradetron?.strategy_id]);
     if(key === lastKey)return; lastKey=key;
     const expanded=new Set([...document.querySelectorAll("details[data-group][open]")].map(n=>n.dataset.group));
     const focusedGroup=document.activeElement?.tagName === "SUMMARY" ? document.activeElement.closest("details[data-group]")?.dataset.group : null;

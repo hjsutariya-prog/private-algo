@@ -660,6 +660,8 @@ class LocalServer(ThreadingHTTPServer):
             self.tradetron_runtime = TradetronSignalRuntime(
                 self.tradetron, store.path.parent / (store.path.stem + "-tradetron-events.sqlite3"))
             self.deployment_runtimes = DeploymentRuntimeRegistry(store, store.path.parent, self.tradetron)
+            self.deployment_runtimes.set_market(self.paper)
+            self.paper.set_strategy_observer(self.deployment_runtimes.observe_spot)
         except Exception:
             super().server_close()
             raise
@@ -832,6 +834,22 @@ class Handler(BaseHTTPRequestHandler):
                 result = self.server.deployment_runtimes.paper_bootstrap(deployment_id, snapshot)
                 self._respond(200, {**result,
                                     "notice": "Tradetron received paper-test runtime values for this deployment. No Zerodha order was sent by this app."})
+            elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/runner/start"):
+                if set(payload) != {"confirmation"}:
+                    raise ValueError("Starting automatic paper signals requires its exact local confirmation.")
+                deployment_id = route.split("/")[3]
+                self._respond(200, {"deployment": self.server.deployment_runtimes.start_runner(deployment_id, payload["confirmation"]),
+                                    "notice": "Automatic paper signals can only send to the linked Tradetron paper deployment. No Zerodha order route exists."})
+            elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/runner/pause"):
+                if payload:
+                    raise ValueError("Pausing automatic paper signals does not take settings.")
+                deployment_id = route.split("/")[3]
+                self._respond(200, {"deployment": self.server.deployment_runtimes.pause_runner(deployment_id)})
+            elif self.command == "POST" and len(route.split("/")) == 6 and route.startswith("/api/deployments/") and route.endswith("/runner/confirm"):
+                if set(payload) != {"event_id"} or not isinstance(payload["event_id"], str):
+                    raise ValueError("Choose one pending Tradetron event to confirm.")
+                deployment_id = route.split("/")[3]
+                self._respond(200, {"deployment": self.server.deployment_runtimes.confirm_runner_event(deployment_id, payload["event_id"])})
             elif self.command == "PATCH" and route.startswith("/api/strategies/"):
                 self._respond(200, {"strategy": self.server.store.update_strategy(route.rsplit("/", 1)[1], payload)})
             elif self.command == "POST" and route == "/api/scenarios/run":

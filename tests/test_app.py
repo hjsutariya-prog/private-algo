@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from app import LocalServer
 from deployment_runtime import DeploymentRuntimeRegistry, MIGRATION_CONFIRMATION
+from live_strategy_runner import RUNNER_CONFIRMATION
 from scenarios import CATALOG, run_scenario
 from store import Store
 from tradetron_link import TradetronLinkState, TradetronLinkStore
@@ -150,6 +151,8 @@ class ApiTests(unittest.TestCase):
         cls.server.tradetron = TradetronLinkState(TradetronLinkStore(
             Path(cls.temp.name) / "api-tradetron.dpapi", TestOnlyProtection()))
         cls.server.deployment_runtimes = DeploymentRuntimeRegistry(cls.server.store, Path(cls.temp.name), cls.server.tradetron)
+        cls.server.deployment_runtimes.set_market(cls.server.paper)
+        cls.server.paper.set_strategy_observer(cls.server.deployment_runtimes.observe_spot)
         cls.port = cls.server.server_address[1]
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
@@ -215,7 +218,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(linked["deployment"]["executor"]["strategy_id"], "999056854")
         self.assertEqual(linked["deployment"]["runner"]["mode"], "paper_only")
         self.assertFalse(linked["deployment"]["runner"]["armed"])
-        self.assertEqual(linked["deployment"]["runner"]["automatic_runner"], "unavailable")
+        self.assertEqual(linked["deployment"]["runner"]["automatic_runner"], "off")
         self.assertEqual(linked["deployment"]["bridge"], {
             "signal_lots": 1,
             "tradetron_multiplier": "managed_in_tradetron",
@@ -277,6 +280,30 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(result["deployment"]["executor"]["delivery"], "verified")
         self.assertEqual(dispatch.call_args.args[0]["strategy_id"], "999056854")
         self.assertNotIn(fixture_token, json.dumps(result))
+
+    def test_strategy_runner_has_a_separate_paper_only_start_and_pause_gate(self):
+        strategy = self.request("POST", "/api/strategies", {"name": "Runner gate", "lots": 1, "capital": 100000})[1]["strategy"]
+        deployment = self.request("POST", "/api/deployments", {"strategy_id": strategy["id"]})[1]["deployment"]
+        fixture_link = "https://api.tradetron.tech/api?auth-token=55555555-5555-4555-8555-555555555555&key=api_buy&value=1"
+        self.request("POST", f"/api/deployments/{deployment['id']}/tradetron/link", {
+            "strategy_id": "999056854", "api_link": fixture_link, "remember": True,
+        })
+        with patch("deployment_runtime.dispatch_snapshot_entries", return_value={"mode": "paper_bootstrap_only"}), \
+                patch.object(self.server.paper_replay, "snapshot", return_value={"kind": "historical_paper_replay"}), \
+                patch.object(self.server.paper, "strategy_runner_ready", return_value=None):
+            status, _, _ = self.request("POST", f"/api/deployments/{deployment['id']}/tradetron/paper-bootstrap", {
+                "confirmation": "paper-bootstrap-four-legs"
+            })
+            self.assertEqual(status, 200)
+            status, blocked, _ = self.request("POST", f"/api/deployments/{deployment['id']}/runner/start", {"confirmation": "wrong"})
+            self.assertEqual(status, 400)
+            self.assertIn("exact local confirmation", blocked["error"])
+            status, started, _ = self.request("POST", f"/api/deployments/{deployment['id']}/runner/start", {"confirmation": RUNNER_CONFIRMATION})
+        self.assertEqual(status, 200)
+        self.assertEqual((started["deployment"]["state"], started["deployment"]["runner"]["automatic_runner"]), ("paper_running", "running"))
+        status, paused, _ = self.request("POST", f"/api/deployments/{deployment['id']}/runner/pause", {})
+        self.assertEqual(status, 200)
+        self.assertEqual((paused["deployment"]["state"], paused["deployment"]["runner"]["automatic_runner"]), ("paused", "off"))
 
     def test_tradetron_link_exposes_locked_signal_contract_and_cannot_send_orders(self):
         fixture_token = "11111111-1111-4111-8111-111111111111"

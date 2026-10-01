@@ -433,5 +433,35 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(result["selection"]["replacement_distance"],1000)
         self.assertEqual(result["selection"]["hedge_target_premium"],500)
 
+    def test_strategy_runner_selects_current_entry_and_next_month_rollover_hedge(self):
+        self.runtime.client = self.kite._client.return_value
+        self.runtime.index_token = 99
+        self.runtime.expiry, self.runtime.next_expiry = "2026-10-27", "2026-11-23"
+        contracts = []
+        premiums = {
+            ("2026-10-27", "CE", 54000): 1000, ("2026-10-27", "CE", 55000): 500,
+            ("2026-10-27", "PE", 55000): 1000, ("2026-10-27", "PE", 54000): 500,
+            ("2026-11-23", "CE", 55000): 500, ("2026-11-23", "PE", 54000): 500,
+        }
+        for (expiry, kind, strike), premium in premiums.items():
+            contracts.append({"tradingsymbol": f"BANKNIFTY26{'OCT' if expiry.endswith('10-27') else 'NOV'}{strike}{kind}",
+                              "instrument_token": len(contracts) + 100, "expiry": expiry, "lot_size": 30,
+                              "strike": strike, "instrument_type": kind, "premium": premium})
+        self.runtime.contracts = contracts
+        def streamed(token):
+            if token == 99:
+                return quote(token=99, symbol="NSE:NIFTY BANK", last_price=54500, source="zerodha_stream")
+            contract = next(item for item in contracts if item["instrument_token"] == token)
+            return quote(token=token, symbol="NFO:" + contract["tradingsymbol"], last_price=contract["premium"], source="zerodha_stream")
+        self.runtime.stream.quote = streamed
+        ce = self.runtime.strategy_entry_selection("CE", NOW)
+        pe = self.runtime.strategy_entry_selection("PE", NOW)
+        self.assertEqual((ce["expiry_offset"], ce["short_strike"], ce["hedge_strike"]), (0, 54000, 55000))
+        self.assertEqual((pe["expiry_offset"], pe["short_strike"], pe["hedge_strike"]), (0, 55000, 54000))
+        next_hedge = self.runtime.strategy_replacement_selection("CE", NOW, {
+            "short_strike": ce["short_strike"], "hedge_symbol": ce["hedge_symbol"], "hedge_expiry": ce["expiry"]
+        }, rollover=True)
+        self.assertEqual((next_hedge["expiry"], next_hedge["expiry_offset"], next_hedge["hedge_strike"]), ("2026-11-23", 1, 55000))
+
 
 if __name__ == "__main__": unittest.main()
