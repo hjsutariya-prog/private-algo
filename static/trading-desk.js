@@ -691,7 +691,11 @@
     const positionEmpty=()=>empty(mode === "live" ? "Broker positions unavailable" : v.current ? "No open real-quote paper executions" : "Paper positions unavailable",mode === "live" ? "An empty view does not mean your Zerodha account is flat. Broker positions and order reconciliation are not connected." : "Only executed paper quantities appear here. Historical strategy positions are shown separately.",mode === "live" ? "#kite-connection" : "#paper-trading",mode === "live" ? "Review connection limits →" : "Open paper trading →");
     $("desk-open").replaceChildren(deploymentSummary(deployments));
     $("deployment-list").replaceChildren(...(deployments.length ? deployments.map(deploymentBlock) : [empty("No recorded deployments","Live deployments will appear only after broker-position sync is available.","#kite-connection","Review connection limits →")]));
-    text("deployments-scope",deployments.length ? `${deployments.length} paper ${deployments.length === 1 ? "deployment" : "deployments"} · Live execution unavailable.` : "No recorded paper deployments · Live execution unavailable.");
+    const savedDeploymentCount=deployments.filter(record=>record.deploymentId).length;
+    const historicalShown=deployments.some(record=>record.id === "historical-replay");
+    text("deployments-scope",savedDeploymentCount
+      ? `${savedDeploymentCount} saved paper ${savedDeploymentCount === 1 ? "deployment" : "deployments"}${historicalShown ? " · Historical reconstruction shown separately." : ""} · Live execution unavailable.`
+      : historicalShown ? "No saved paper deployments · Historical reconstruction shown separately · Live execution unavailable." : "No recorded paper deployments · Live execution unavailable.");
     const ordered=v.groups.slice().sort((a,b)=>Number(b.strategy === selectedGroup)-Number(a.strategy === selectedGroup));
     const historical=mode === "paper" ? replayView(input.paper?.historical_replay) : null;
     const positionTables=[];
