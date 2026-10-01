@@ -472,5 +472,22 @@ class KiteClient:
             except HTTPError as error:
                 error.close()
                 self._raise_api_error(error.code)
-            except (URLError, TimeoutError, OSError, EOFError, HTTPException, zlib.error):
+            except URLError as error:
+                # Windows error 10013 means local security software or a
+                # firewall policy refused the outgoing socket.  It is not a
+                # failed Zerodha login, so give the person a useful next step
+                # without exposing an OS exception, endpoint, or credentials.
+                reason = getattr(error, "reason", None)
+                if isinstance(reason, PermissionError) and getattr(reason, "winerror", None) == 10013:
+                    raise KiteNetworkError(
+                        "Windows blocked the local app from reaching Zerodha. Allow Private Algo Desk's Python "
+                        "app to make outbound HTTPS connections, then sign in again.") from None
+                raise KiteNetworkError("Kite could not be reached or returned incomplete data. No order was sent.") from None
+            except PermissionError as error:
+                if getattr(error, "winerror", None) == 10013:
+                    raise KiteNetworkError(
+                        "Windows blocked the local app from reaching Zerodha. Allow Private Algo Desk's Python "
+                        "app to make outbound HTTPS connections, then sign in again.") from None
+                raise KiteNetworkError("Kite could not be reached or returned incomplete data. No order was sent.") from None
+            except (TimeoutError, OSError, EOFError, HTTPException, zlib.error):
                 raise KiteNetworkError("Kite could not be reached or returned incomplete data. No order was sent.") from None

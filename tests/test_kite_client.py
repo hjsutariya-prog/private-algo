@@ -395,6 +395,17 @@ class KiteTransportSafetyTests(unittest.TestCase):
         self.assertNotIn(SECRET, str(context.exception))
         self.assertEqual(len(opener.requests), 1)
 
+    def test_windows_outbound_block_has_an_actionable_safe_message(self):
+        blocked = PermissionError(10013, "access denied")
+        blocked.winerror = 10013
+        opener = FakeOpener(URLError(blocked))
+        with self.assertRaises(KiteNetworkError) as context:
+            KiteClient(KEY, TOKEN, opener=opener).profile()
+        self.assertIn("Windows blocked the local app", str(context.exception))
+        self.assertIn("outbound HTTPS", str(context.exception))
+        self.assertNotIn("access denied", str(context.exception))
+        self.assertEqual(len(opener.requests), 1)
+
     def test_redirect_handler_never_forwards_request(self):
         self.assertIsNone(_NoRedirect().redirect_request(None, None, 302, "", {}, "https://another.invalid/"))
 
