@@ -44,7 +44,7 @@ test('saved deployments expose only their own paper executor state',()=>{
   const records=deploymentRecords({groups:[]},input,'paper');
   assert.equal(records.length,2);
   assert.equal(records[0].deploymentId,'one');assert.match(records[0].status,/Link saved/);assert.equal(records[0].executor.strategy_id,'999056854');
-  assert.equal(records[1].deploymentId,'two');assert.match(records[1].status,/Not linked/);assert.match(records[1].note,/its own Tradetron executor/);
+  assert.equal(records[1].deploymentId,'two');assert.match(records[1].status,/Not linked/);assert.match(records[1].note,/Connect Tradetron/);
   assert.equal(records[0].runner.armed,false);
 });
 test('fresh stream quotes update only open replay legs and never turn them into fills',()=>{

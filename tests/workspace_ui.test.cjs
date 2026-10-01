@@ -48,7 +48,7 @@ test('every route synchronises the view, sidebar, breadcrumb and page title', ()
   const e = environment();
   for (const [hash, view, title] of [
     ['#main','overview','Trading desk'], ['#strategies-heading','strategies','Strategies'],
-    ['#deployments','deployments','Deployments'],
+    ['#deployments','deployments','Paper deployments'],
     ['#past-data-check','backtests','Model simulator'], ['#kite-connection','market-data','Connections'], ['#safety-checks','safety-checks','Order checks'], ['#paper-trading','paper-trading','Paper trading'],
     ['#research','research','Research'], ['#positions-orders','positions','Positions & orders'], ['#activity','activity','Activity'],
   ]) {

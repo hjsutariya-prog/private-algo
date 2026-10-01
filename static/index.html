@@ -6,8 +6,8 @@
   <meta name="color-scheme" content="dark">
   <title>Trading desk · Private Algo Desk</title>
   <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/trading-desk.js?v=20261001-deployments2" defer></script>
-  <script src="/static/app.js?v=20261001-deployments1" defer></script>
+  <script src="/static/trading-desk.js?v=20261001-paper-setup" defer></script>
+  <script src="/static/app.js?v=20261001-paper-setup" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#page-title">Skip to content</a>
@@ -18,7 +18,7 @@
       <nav class="workspace-nav" id="workspace-nav" data-open="false" aria-label="Main navigation">
         <a class="nav-item active" href="#main" aria-current="page">Trading desk</a>
         <a class="nav-item" href="#strategies-heading">Strategies</a>
-        <a class="nav-item" href="#deployments">Deployments</a>
+        <a class="nav-item" href="#deployments">Paper deployments</a>
         <a class="nav-item" href="#positions-orders">Positions &amp; orders</a>
         <a class="nav-item" href="#research">Research</a>
         <a class="nav-item" href="#activity">Activity</a>
@@ -43,8 +43,12 @@
         <section class="desk-section" aria-labelledby="desk-open-title"><div class="section-heading"><h2 id="desk-open-title">Strategy summary</h2><a class="text-link" href="#deployments">View deployments →</a></div><div id="desk-open"></div></section>
       </section>
 
-      <section class="workspace-view" data-view="deployments" id="deployments" aria-label="Deployments" hidden>
+      <section class="workspace-view" data-view="deployments" id="deployments" aria-label="Paper deployments" hidden>
         <section class="deployment-page" aria-label="Recorded deployments">
+          <div class="deployment-intro">
+            <div><p class="eyebrow">PAPER TRADING</p><h2>One strategy, one Tradetron connection</h2><p>A paper deployment is a saved copy of a strategy. It can connect only to its matching Tradetron paper-trading setup. This app never sends a Zerodha order.</p></div>
+            <ol class="deployment-flow" aria-label="Paper deployment setup"><li><strong>1</strong> Create from strategy</li><li><strong>2</strong> Connect Tradetron</li><li><strong>3</strong> Test delivery</li></ol>
+          </div>
           <p id="deployments-scope" class="essential-note">Loading recorded deployments…</p>
           <div id="deployment-list" class="deployment-list"></div>
         </section>
@@ -89,11 +93,11 @@
           </div>
           <details class="connection-help"><summary>Connection setup help</summary><p>Set this exact <strong>Redirect URL</strong> in your Kite Connect app settings before signing in:</p><code id="kite-redirect-url">http://127.0.0.1:8765/api/kite/callback</code><p>Enter your API key and secret only in the local setup form, never in chat. Choose Remember to keep them protected by Windows across app restarts during this Windows sign-in. Zerodha sign-in is still required each day and after an app restart.</p></details>
         </section>
-        <section class="panel connection-panel" id="tradetron-connection" aria-labelledby="tradetron-title">
-          <div class="connection-header"><div><h2 id="tradetron-title">Legacy Tradetron link</h2><p class="section-description">New links belong to a specific paper deployment. Use that deployment’s three-dot menu; this panel is only for an older app-wide link.</p></div><div class="connection-actions"><button class="button secondary compact" id="tradetron-configure" type="button">Link legacy executor</button></div></div>
+        <section class="panel connection-panel" id="tradetron-connection" aria-labelledby="tradetron-title" hidden>
+          <div class="connection-header"><div><h2 id="tradetron-title">Older Tradetron link</h2><p class="section-description">This link was saved before paper deployments had their own connections. Move it to the right paper deployment. New links are set up from Paper deployments.</p></div><div class="connection-actions"><a class="button secondary compact" href="#deployments">Open paper deployments</a><button class="button subtle compact" id="tradetron-configure" type="button">Replace older link</button></div></div>
           <div id="tradetron-error" class="notice error" role="alert" hidden></div>
           <div class="connection-grid"><div class="connection-state"><div class="section-heading"><h3>Executor link</h3><span class="badge quiet" id="tradetron-status-badge">CHECKING</span></div><p class="connection-message" id="tradetron-message">Checking the local executor link…</p><dl class="connection-facts"><div><dt>Strategy</dt><dd id="tradetron-strategy-status">Not linked</dd></div><div><dt>Delivery</dt><dd id="tradetron-delivery-status">Locked</dd></div><div><dt>Signal runner</dt><dd id="tradetron-runner-status">Not checked</dd></div><div><dt>Storage</dt><dd id="tradetron-storage-status">Not checked</dd></div></dl><button class="button secondary compact" id="tradetron-forget" type="button" hidden>Forget executor link</button></div></div>
-          <p class="essential-note">Move a saved legacy link into one deployment before future paper use. Each deployment keeps its own counters and outbox. Automatic sending is not connected yet; this app never sends broker orders.</p>
+          <p class="essential-note">An older link cannot be used for new paper trading. Move it to one paper deployment; it will then belong only to that setup.</p>
         </section>
         <section class="panel paper-panel" aria-labelledby="stream-title">
           <div class="section-heading"><h2 id="stream-title">Live prices</h2><span id="stream-badge" class="badge quiet">NOT STARTED</span></div>
@@ -137,7 +141,7 @@
           <section class="strategy-detail" id="strategy-detail" aria-labelledby="detail-title"><a class="text-link strategy-back" href="#strategies-heading">← Back to strategy drafts</a>
             <div id="empty-detail" class="empty-state" hidden><h2>Start with a strategy</h2><p>Create a draft with a name, lot count and planned capital.</p><button class="button secondary" id="create-first-strategy" type="button">Create strategy draft</button></div>
             <div id="detail-content" hidden>
-              <div class="detail-header"><div><div class="detail-kicker"><span class="small-dot amber" aria-hidden="true"></span><span id="detail-status">DRAFT</span></div><h2 id="detail-title" tabindex="-1">Strategy</h2><p id="detail-updated" class="muted"></p></div><div class="detail-actions"><button class="button secondary compact" id="deploy-strategy" type="button">Create paper deployment</button><button class="button secondary compact" id="edit-strategy" type="button" hidden>Edit details</button></div></div><p id="deployment-create-error" class="notice error" role="alert" hidden></p>
+              <div class="detail-header"><div><div class="detail-kicker"><span class="small-dot amber" aria-hidden="true"></span><span id="detail-status">DRAFT</span></div><h2 id="detail-title" tabindex="-1">Strategy</h2><p id="detail-updated" class="muted"></p></div><div class="detail-actions"><button class="button secondary compact" id="deploy-strategy" type="button">Set up paper trading</button><button class="button secondary compact" id="edit-strategy" type="button" hidden>Edit details</button></div></div><p id="deployment-create-error" class="notice error" role="alert" hidden></p>
               <div class="strategy-facts"><div><span class="fact-label">Effective lots / leg</span><strong id="detail-lots">—</strong></div><div><span class="fact-label">Planned capital</span><strong id="detail-capital">—</strong><p>Planning only</p></div><div><span class="fact-label">Status</span><strong id="detail-phase">Draft</strong></div></div>
               <p id="detail-summary" class="essential-note">Fixed hourly BANKNIFTY rules · 500-point stop · 1,000-point target · monthly hedge rollover.</p>
               <details class="rules-disclosure detail-section"><summary class="rules-summary">Rules & limitations</summary><p class="section-description">Rule editing is not available for this template.</p><div id="strategy-rules" class="rule-grid"></div></details>

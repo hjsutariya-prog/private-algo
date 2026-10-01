@@ -165,6 +165,22 @@
       const executor=deployment.executor || {};
       const runner=deployment.runner || {};
       const linked=executor.linked === true;
+      const connection=linked
+        ? deployment.state === "paper_ready" && executor.delivery === "verified" ? "Connected & tested"
+          : deployment.state === "linked_unverified" ? "Connected · test pending"
+          : executor.delivery === "needs_relink" ? "Needs a new link"
+          : "Connected"
+        : "Not connected";
+      const connectionNote=linked
+        ? `Tradetron paper strategy ${executor.strategy_id || "not recorded"}. This connection belongs only to this paper setup.`
+        : "Connect this paper setup to its matching Tradetron paper strategy.";
+      const nextStep=!linked ? "Connect Tradetron"
+        : deployment.state === "linked_unverified" ? "Run delivery check"
+        : deployment.state === "paper_ready" ? "Automatic sends are off"
+        : deployment.state === "paper_running" ? "Paper signals running"
+        : deployment.state === "paused" ? "Paper signals paused"
+        : deployment.state === "blocked" ? "Review paper setup"
+        : "Review paper setup";
       const status=linked
         ? deployment.state === "linked_unverified" ? "Link saved · paper check required"
           : deployment.state === "paper_ready" ? "Paper ready · not running"
@@ -176,12 +192,13 @@
       records.push({
         id:"saved-deployment:"+deployment.id, strategy:deployment.strategy_name || "BANKNIFTY strategy",
         execution:"Paper", status,
+        connection,connectionNote,nextStep,
         valuationAt:deployment.updated_at || deployment.created_at, multiplier:deployment.multiplier,
         legs:[], pnl:null,
         deploymentId:deployment.id, deploymentState:deployment.state, executor, runner,
         note:linked
-          ? `Saved paper deployment · ${deployment.strategy_version || "version unavailable"}. Its own Tradetron link is protected on this Windows account; automatic sending remains off.`
-          : `Saved paper deployment · ${deployment.strategy_version || "version unavailable"}. Link its own Tradetron executor before it can receive signals.`,
+          ? `Paper deployment · ${deployment.strategy_version || "version unavailable"}. Automatic signal sending is off.`
+          : `Paper deployment · ${deployment.strategy_version || "version unavailable"}. Connect Tradetron to complete setup.`,
       });
     }
     const historical=liveReplayView(input?.paper?.historical_replay,input,now);
@@ -563,21 +580,23 @@
     toggle.setAttribute("aria-label",`Controls for ${record.strategy}`);
     const actions=node("div",null,"row-menu-actions");
     actions.setAttribute("role","menu");
-    const runtime=node("button","Runtime data","menu-action");
-    runtime.type="button";
-    runtime.addEventListener("click",()=>showRuntimeData(record));
-    const statistics=node("button","Statistics","menu-action");
-    statistics.type="button";
-    statistics.addEventListener("click",()=>showStatistics(record));
-    actions.append(runtime,statistics);
+    if(record.legs.length) {
+      const runtime=node("button","Runtime data","menu-action");
+      runtime.type="button";
+      runtime.addEventListener("click",()=>showRuntimeData(record));
+      const statistics=node("button","Statistics","menu-action");
+      statistics.type="button";
+      statistics.addEventListener("click",()=>showStatistics(record));
+      actions.append(runtime,statistics);
+    }
     if(record.deploymentId) {
       const linked=record.executor?.linked === true;
-      const linkExecutor=node("button",linked ? "Replace executor link" : "Link paper executor","menu-action");
-      linkExecutor.type="button";
-      linkExecutor.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-link",{detail:{id:record.deploymentId}})));
-      actions.append(linkExecutor);
+      const linkTradetron=node("button",linked ? "Change Tradetron connection" : "Connect Tradetron","menu-action");
+      linkTradetron.type="button";
+      linkTradetron.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-link",{detail:{id:record.deploymentId}})));
+      actions.append(linkTradetron);
       if(linked) {
-        const disconnect=node("button","Remove executor link","menu-action");
+        const disconnect=node("button","Remove Tradetron connection","menu-action");
         disconnect.type="button";
         disconnect.addEventListener("click",()=>root.dispatchEvent(new CustomEvent("deployment-disconnect",{detail:{id:record.deploymentId}})));
         actions.append(disconnect);
@@ -592,13 +611,13 @@
     menu.append(toggle,actions); return menu;
   }
   function deploymentSummary(records) {
-    if (!records.length) return empty("No recorded deployments","There are no paper deployments to show. Live deployments will appear only after broker-position sync is available.","#kite-connection","Review connection limits →");
+    if (!records.length) return empty("No paper deployments","Create a paper deployment from a saved strategy, then connect its matching Tradetron paper setup.","#strategies-heading","Open strategies →");
     const rows=records.map(record=>{
       const row=node("tr");
       row.append(
         deskCell("Strategy",link(record.strategy,"#deployments")),
-        deskCell("Execution",record.execution,null,"execution"),
-        deskCell("Status",record.status),
+        deskCell("Tradetron",record.connection),
+        deskCell("Next",record.nextStep),
         deskCell("Open legs",String(record.legs.length)),
         deskCell("Open P&L",money(record.pnl),null,finite(record.pnl) && record.pnl >= 0 ? "gain" : "loss"),
         deskCell("Controls",deploymentMenu(record),null,"table-controls")
@@ -606,16 +625,20 @@
       return row;
     });
     const n=node("div",null,"desk-table-panel strategy-summary-table");
-    n.append(deskTable("Strategy deployment summary",["Strategy","Execution","Status","Open legs","Open P&L","Controls"],rows,"desk-deployment-summary"));
+    n.append(deskTable("Paper deployment summary",["Strategy","Tradetron","Next","Open legs","Open P&L","Controls"],rows,"desk-deployment-summary"));
     return n;
   }
   function deploymentBlock(record) {
     const n=node("article",null,"deployment-card");
     const head=node("div",null,"deployment-card-head"), title=node("div");
     title.append(node("h2",record.strategy),node("p",record.note,"essential-note"));
-    head.append(title,node("span",record.execution,"deployment-execution"),node("span",record.status,"state-label deployment-status"+(record.status === "Needs review" ? " warning" : "")),deploymentMenu(record));
+    head.append(title,node("span",record.execution,"deployment-execution"),node("span",record.connection || record.status,"state-label deployment-status"+(record.connection === "Needs a new link" ? " warning" : "")),deploymentMenu(record));
     const facts=node("dl",null,"deployment-facts");
-    facts.append(detail("Valued through",when(record.valuationAt)),detail("Open legs",String(record.legs.length)));
+    const connection=detail("Tradetron connection",record.connection || "Not connected",record.connectionNote);
+    connection.classList.add("deployment-connection");
+    const next=detail("Automatic signal sending",record.nextStep || "Off",record.deploymentState === "paper_ready" ? "The connection is tested. This app is not sending new signals automatically." : "Automatic sending is not available yet.");
+    next.classList.add("deployment-next");
+    facts.append(connection,next,detail("Open option legs",String(record.legs.length),record.legs.length ? "Local paper records only." : "No local paper positions recorded."));
     if(record.multiplier) facts.append(detail("Paper size",`1 × ${record.multiplier} = ${record.multiplier} lots`));
     n.append(head,facts);
     if (record.legs.length) {
@@ -663,6 +686,10 @@
     text("desk-status-note",mode === "live" ? `Live execution, broker positions and account values are not connected. Last price: ${v.lastPrice ? when(v.lastPrice) : "not received"}.` : `Live execution unavailable. Paper records are separate from broker positions. Last price: ${v.lastPrice ? when(v.lastPrice) : "not received"}.`);
     // Polling must not replace a focused button or collapse expanded evidence.
     const deployments=deploymentRecords(v,input,mode);
+    // A historical replay is research evidence, not a paper deployment.  Keep
+    // it out of the deployment setup screen so users never confuse its marks
+    // with a Tradetron connection or a paper order.
+    const paperDeployments=deployments.filter(record=>record.deploymentId);
     const key=JSON.stringify([mode,v.active,v.current,v.protection,v.pricesFresh,v.orders,v.groups.map(g=>[g.key,g.protection,g.pnl,g.legs.map(l=>[l.entry,l.mark,l.basis])]),deployments.map(d=>[d.id,d.status,d.valuationAt,d.multiplier,d.pnl,d.legs.map(l=>[l.mark,l.pnl,l.liveMark])]),v.issues,v.activity,v.drafts,input.paper?.historical_replay,input.live?.account,input.tradetron?.linked,input.tradetron?.delivery,input.tradetron?.strategy_id]);
     if(key === lastKey)return; lastKey=key;
     const expanded=new Set([...document.querySelectorAll("details[data-group][open]")].map(n=>n.dataset.group));
@@ -689,13 +716,13 @@
     $("desk-risk").replaceChildren(...metric.map(item=>{const n=node("div");n.append(node("span",item.label),node("strong",money(item.value)),node("small",item.note));return n;}));
     text("desk-risk-note",mode === "paper" ? `Saved-paper valuation: ${when(input.paper?.valuation?.as_of)}. Charges, if present, are estimates.` : "Confirmed broker account values only.");
     const positionEmpty=()=>empty(mode === "live" ? "Broker positions unavailable" : v.current ? "No open real-quote paper executions" : "Paper positions unavailable",mode === "live" ? "An empty view does not mean your Zerodha account is flat. Broker positions and order reconciliation are not connected." : "Only executed paper quantities appear here. Historical strategy positions are shown separately.",mode === "live" ? "#kite-connection" : "#paper-trading",mode === "live" ? "Review connection limits →" : "Open paper trading →");
-    $("desk-open").replaceChildren(deploymentSummary(deployments));
-    $("deployment-list").replaceChildren(...(deployments.length ? deployments.map(deploymentBlock) : [empty("No recorded deployments","Live deployments will appear only after broker-position sync is available.","#kite-connection","Review connection limits →")]));
-    const savedDeploymentCount=deployments.filter(record=>record.deploymentId).length;
+    $("desk-open").replaceChildren(deploymentSummary(paperDeployments));
+    $("deployment-list").replaceChildren(...(paperDeployments.length ? paperDeployments.map(deploymentBlock) : [empty("No paper deployments","Create a paper deployment from a saved strategy, then connect its matching Tradetron paper setup.","#strategies-heading","Open strategies →")]));
+    const savedDeploymentCount=paperDeployments.length;
     const historicalShown=deployments.some(record=>record.id === "historical-replay");
     text("deployments-scope",savedDeploymentCount
-      ? `${savedDeploymentCount} saved paper ${savedDeploymentCount === 1 ? "deployment" : "deployments"}${historicalShown ? " · Historical reconstruction shown separately." : ""} · Live execution unavailable.`
-      : historicalShown ? "No saved paper deployments · Historical reconstruction shown separately · Live execution unavailable." : "No recorded paper deployments · Live execution unavailable.");
+      ? `${savedDeploymentCount} paper ${savedDeploymentCount === 1 ? "deployment" : "deployments"}${historicalShown ? " · Historical replay is under Positions & orders and Research." : ""}`
+      : historicalShown ? "No paper deployments yet · Historical replay is under Positions & orders and Research." : "No paper deployments yet.");
     const ordered=v.groups.slice().sort((a,b)=>Number(b.strategy === selectedGroup)-Number(a.strategy === selectedGroup));
     const historical=mode === "paper" ? replayView(input.paper?.historical_replay) : null;
     const positionTables=[];
