@@ -1,0 +1,9 @@
+data/
+tmp/
+__pycache__/
+*.pyc
+.env
+.env.*
+.deps/
+.stream-deps/
+.pytest_cache/

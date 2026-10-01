@@ -1,0 +1,366 @@
+{
+  "scope": "Existing saved September prices, not live fills; current hourly-close risk rules",
+  "spot_download_hash": "00ad4de7dcdfffc03c0effaac39dd0525e7e442519cf06f61a072d72e7fb2fd2",
+  "spot_minutes": 5999,
+  "option_data": {
+    "policy": "recorded_first_estimate_fallback_v1",
+    "contracts": 77,
+    "candle_count": 191689,
+    "quote_count": 0,
+    "conflicting_minutes": 5,
+    "rejected_rows": 147952,
+    "notes": [
+      "Includes the existing engine's saved Zerodha history, opened read-only."
+    ]
+  },
+  "status": "complete",
+  "validation_status": "approximate",
+  "pricing_summary": {
+    "recorded": {
+      "positions": 5,
+      "closed_net": 6758.35,
+      "open_net": 69597.12
+    },
+    "mixed": {
+      "positions": 2,
+      "closed_net": 0.0,
+      "open_net": -44419.18
+    },
+    "estimated": {
+      "positions": 0,
+      "closed_net": 0.0,
+      "open_net": 0.0
+    }
+  },
+  "unchanged_strategy_and_hedge_events": true,
+  "recorded_first_totals": {
+    "realised_gross": 7950.0,
+    "realised_charges": 1191.65,
+    "realised_net": 6758.35,
+    "open_gross": 25512.0,
+    "open_entry_charges": 334.06,
+    "open_net": 25177.94,
+    "total_net": 31936.29
+  },
+  "model_only_totals": {
+    "realised_gross": 48529.2,
+    "realised_charges": 1265.15,
+    "realised_net": 47264.05,
+    "open_gross": -54379.2,
+    "open_entry_charges": 355.32,
+    "open_net": -54734.52,
+    "total_net": -7470.47
+  },
+  "warnings": [
+    "Missing minute prices were skipped without interpolation; missed fills are unknown and totals are approximate.",
+    "Includes the existing engine's saved Zerodha history, opened read-only.",
+    "Invalid or conflicting option observations were excluded; affected prices use labelled estimates.",
+    "Option P&L is a backtest estimate, including recorded candle/quote price proxies rather than guaranteed fills. Price coverage separates recorded, mixed and model-only legs."
+  ],
+  "examples": [
+    {
+      "ledger": "selling",
+      "contract": {
+        "instrument": "BANKNIFTY",
+        "expiry": "2026-09-29",
+        "option_type": "PE",
+        "strike": 58000.0,
+        "symbol": "BANKNIFTY26SEP58000PE"
+      },
+      "entry_at": "2026-09-02T10:15:00+05:30",
+      "exit_at": "2026-09-09T09:15:00+05:30",
+      "entry_pricing": {
+        "premium": 1054.35,
+        "basis": "recorded",
+        "source": {
+          "premium": 1054.35,
+          "kind": "minute_open",
+          "observed_at": "2026-09-02T10:15:00+05:30",
+          "candle_at": "2026-09-02T10:15:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "3906f70eaf781ba75ac3d0109f8e4d5cecc50738a9a80c8cfe2d1da6f7209fa1",
+          "symbol": "BANKNIFTY26SEP58000PE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "exit_or_mark_pricing": {
+        "premium": 1340.0,
+        "basis": "recorded",
+        "source": {
+          "premium": 1340.0,
+          "kind": "minute_open",
+          "observed_at": "2026-09-09T09:15:00+05:30",
+          "candle_at": "2026-09-09T09:15:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "3906f70eaf781ba75ac3d0109f8e4d5cecc50738a9a80c8cfe2d1da6f7209fa1",
+          "symbol": "BANKNIFTY26SEP58000PE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "pnl_basis": "recorded",
+      "net_pnl": -34640.59
+    },
+    {
+      "ledger": "selling",
+      "contract": {
+        "instrument": "BANKNIFTY",
+        "expiry": "2026-09-29",
+        "option_type": "CE",
+        "strike": 56500.0,
+        "symbol": "BANKNIFTY26SEP56500CE"
+      },
+      "entry_at": "2026-09-08T10:15:00+05:30",
+      "exit_at": "2026-09-11T09:15:00+05:30",
+      "entry_pricing": {
+        "premium": 1123.9,
+        "basis": "recorded",
+        "source": {
+          "premium": 1123.9,
+          "kind": "minute_open",
+          "observed_at": "2026-09-08T10:15:00+05:30",
+          "candle_at": "2026-09-08T10:15:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "36aceb7a1cde1d66b6111ee8d3aa8bb47e5b2856bd8fa6e866ac5ac82125845b",
+          "symbol": "BANKNIFTY26SEP56500CE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "exit_or_mark_pricing": {
+        "premium": 600.0,
+        "basis": "recorded",
+        "source": {
+          "premium": 600.0,
+          "kind": "minute_open",
+          "observed_at": "2026-09-11T09:15:00+05:30",
+          "candle_at": "2026-09-11T09:15:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "36aceb7a1cde1d66b6111ee8d3aa8bb47e5b2856bd8fa6e866ac5ac82125845b",
+          "symbol": "BANKNIFTY26SEP56500CE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "pnl_basis": "recorded",
+      "net_pnl": 62529.37
+    },
+    {
+      "ledger": "selling",
+      "contract": {
+        "instrument": "BANKNIFTY",
+        "expiry": "2026-09-29",
+        "option_type": "PE",
+        "strike": 57000.0,
+        "symbol": "BANKNIFTY26SEP57000PE"
+      },
+      "entry_at": "2026-09-11T10:15:00+05:30",
+      "exit_at": null,
+      "entry_pricing": {
+        "premium": 1055.65,
+        "basis": "recorded",
+        "source": {
+          "premium": 1055.65,
+          "kind": "minute_open",
+          "observed_at": "2026-09-11T10:15:00+05:30",
+          "candle_at": "2026-09-11T10:15:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "2caf3949028baf68194a787cadf48b28311099915a5900b92159bb06de1c01fa",
+          "symbol": "BANKNIFTY26SEP57000PE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "exit_or_mark_pricing": {
+        "premium": 473.45,
+        "basis": "recorded",
+        "source": {
+          "premium": 473.45,
+          "kind": "minute_close",
+          "observed_at": "2026-09-23T15:29:00+05:30",
+          "candle_at": "2026-09-23T15:28:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "c4ec840704f5a882d048cce7ef732988ba269ab328838824131cf610ff421d89",
+          "symbol": "BANKNIFTY26SEP57000PE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "pnl_basis": "recorded",
+      "net_pnl": 69597.12
+    },
+    {
+      "ledger": "selling",
+      "contract": {
+        "instrument": "BANKNIFTY",
+        "expiry": "2026-09-29",
+        "option_type": "CE",
+        "strike": 55500.0,
+        "symbol": "BANKNIFTY26SEP55500CE"
+      },
+      "entry_at": "2026-09-15T15:15:00+05:30",
+      "exit_at": "2026-09-17T09:33:00+05:30",
+      "entry_pricing": {
+        "premium": 1039.2,
+        "basis": "recorded",
+        "source": {
+          "premium": 1039.2,
+          "kind": "minute_open",
+          "observed_at": "2026-09-15T15:15:00+05:30",
+          "candle_at": "2026-09-15T15:15:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "a86ceb59289164bbdb1d67c5a121f5b4b140a748e19b79c23464435723ea928f",
+          "symbol": "BANKNIFTY26SEP55500CE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "exit_or_mark_pricing": {
+        "premium": 1331.3,
+        "basis": "recorded",
+        "source": {
+          "premium": 1331.3,
+          "kind": "minute_close",
+          "observed_at": "2026-09-17T09:33:00+05:30",
+          "candle_at": "2026-09-17T09:32:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "a86ceb59289164bbdb1d67c5a121f5b4b140a748e19b79c23464435723ea928f",
+          "symbol": "BANKNIFTY26SEP55500CE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "pnl_basis": "recorded",
+      "net_pnl": -35410.65
+    },
+    {
+      "ledger": "ce_hedge",
+      "contract": {
+        "instrument": "BANKNIFTY",
+        "expiry": "2026-09-29",
+        "option_type": "CE",
+        "strike": 59000.0,
+        "symbol": "BANKNIFTY26SEP59000CE"
+      },
+      "entry_at": "2026-09-01T09:15:00+05:30",
+      "exit_at": null,
+      "entry_pricing": {
+        "premium": 237.7,
+        "basis": "recorded",
+        "source": {
+          "premium": 237.7,
+          "kind": "minute_open",
+          "observed_at": "2026-09-01T09:15:00+05:30",
+          "candle_at": "2026-09-01T09:15:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "afe07f9f01088b95c70b47c48584e94b9701f232785db775006c3896fd42cc38",
+          "symbol": "BANKNIFTY26SEP59000CE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "exit_or_mark_pricing": {
+        "premium": 0.0,
+        "basis": "estimated",
+        "source": null,
+        "fallback_reason": "No matching recorded option price at this time",
+        "is_broker_fill": false
+      },
+      "pnl_basis": "mixed",
+      "net_pnl": -28560.45
+    },
+    {
+      "ledger": "pe_hedge",
+      "contract": {
+        "instrument": "BANKNIFTY",
+        "expiry": "2026-09-29",
+        "option_type": "PE",
+        "strike": 56000.0,
+        "symbol": "BANKNIFTY26SEP56000PE"
+      },
+      "entry_at": "2026-09-01T09:15:00+05:30",
+      "exit_at": "2026-09-09T09:16:00+05:30",
+      "entry_pricing": {
+        "premium": 200.0,
+        "basis": "recorded",
+        "source": {
+          "premium": 200.0,
+          "kind": "minute_open",
+          "observed_at": "2026-09-01T09:15:00+05:30",
+          "candle_at": "2026-09-01T09:15:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "7879142f2f67d14d1c4814819106f5354a376dd5b7de92222aaf323216499aa8",
+          "symbol": "BANKNIFTY26SEP56000PE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "exit_or_mark_pricing": {
+        "premium": 320.1,
+        "basis": "recorded",
+        "source": {
+          "premium": 320.1,
+          "kind": "minute_close",
+          "observed_at": "2026-09-09T09:16:00+05:30",
+          "candle_at": "2026-09-09T09:15:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "393195c6d1305d023fd6e6af95e60eaf882339fc859178121659dbb41c5d2c1a",
+          "symbol": "BANKNIFTY26SEP56000PE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "pnl_basis": "recorded",
+      "net_pnl": 14280.22
+    },
+    {
+      "ledger": "pe_hedge",
+      "contract": {
+        "instrument": "BANKNIFTY",
+        "expiry": "2026-09-29",
+        "option_type": "PE",
+        "strike": 55000.0,
+        "symbol": "BANKNIFTY26SEP55000PE"
+      },
+      "entry_at": "2026-09-09T09:16:00+05:30",
+      "exit_at": null,
+      "entry_pricing": {
+        "premium": 131.9,
+        "basis": "recorded",
+        "source": {
+          "premium": 131.9,
+          "kind": "minute_open",
+          "observed_at": "2026-09-09T09:16:00+05:30",
+          "candle_at": "2026-09-09T09:16:00+05:30",
+          "source": "kite_cached_history",
+          "source_id": "43aa2578c062caa0dd86c138703dd652d02c7f162069c46ee75dc6a68ebdede3",
+          "symbol": "BANKNIFTY26SEP55000PE",
+          "limitation": "Recorded candle price proxy; spread, exact trigger second and fill availability are unknown."
+        },
+        "fallback_reason": null,
+        "is_broker_fill": false
+      },
+      "exit_or_mark_pricing": {
+        "premium": 0.0,
+        "basis": "estimated",
+        "source": null,
+        "fallback_reason": "No matching recorded option price at this time",
+        "is_broker_fill": false
+      },
+      "pnl_basis": "mixed",
+      "net_pnl": -15858.73
+    }
+  ]
+}

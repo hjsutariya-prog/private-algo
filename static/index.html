@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Trading desk · Private Algo Desk</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/trading-desk.js?v=20261001-statistics1" defer></script>
+  <script src="/static/app.js?v=20261001-performance7" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#page-title">Skip to content</a>
+  <div class="app-shell">
+    <header class="sidebar app-header" aria-label="Workspace">
+      <a class="brand" href="#main" aria-label="Private Algo Desk home"><span class="brand-mark" aria-hidden="true">PA</span><span>Private Algo Desk<span class="brand-second">Research &amp; paper trading</span></span></a>
+      <button class="button secondary" id="mobile-menu" type="button" aria-expanded="false" aria-controls="workspace-nav">Menu · Trading desk</button>
+      <nav class="workspace-nav" id="workspace-nav" data-open="false" aria-label="Main navigation">
+        <a class="nav-item active" href="#main" aria-current="page">Trading desk</a>
+        <a class="nav-item" href="#strategies-heading">Strategies</a>
+        <a class="nav-item" href="#deployments">Deployments</a>
+        <a class="nav-item" href="#positions-orders">Positions &amp; orders</a>
+        <a class="nav-item" href="#research">Research</a>
+        <a class="nav-item" href="#activity">Activity</a>
+        <a class="nav-item" href="#kite-connection">Connections</a>
+      </nav>
+      <a class="sidebar-connection" href="#kite-connection"><span class="small-dot" id="nav-connection-dot" aria-hidden="true"></span><span id="nav-connection-status">Checking Zerodha…</span><span aria-hidden="true">↗</span></a>
+      <div class="sidebar-profile"><span class="profile-avatar" aria-hidden="true">PA</span><div class="profile-copy"><strong>Personal workspace</strong><span>Local & private</span></div></div>
+    </header>
+    <main id="main">
+      <div class="topbar"><p class="topbar-path">Workspace <span aria-hidden="true">/</span> <strong id="page-location">Trading desk</strong></p><span class="topbar-status">Live unavailable · No live orders</span></div>
+      <header class="page-header"><div><h1 id="page-title" tabindex="-1">Trading desk</h1><p id="page-description" class="page-description">Protection, exposure and anything that needs your attention.</p></div><div class="header-actions"><button class="button secondary" id="create-strategy" type="button">Create strategy draft</button></div></header>
+      <section class="trading-status" aria-label="Persistent trading status">
+        <dl><div><dt>Execution</dt><dd id="desk-execution">Checking…</dd></div><div><dt>Broker connection</dt><dd id="desk-connection">Checking…</dd></div><div><dt>Market prices</dt><dd id="desk-prices">Not checked</dd></div><div><dt>Trading</dt><dd id="desk-trading">Checking…</dd></div><div><dt>Protection</dt><dd id="desk-protection">Checking…</dd></div></dl>
+        <p id="desk-status-note">Connecting Zerodha supplies prices. It does not enable trading.</p>
+      </section>
+      <div id="page-error" class="notice error" role="alert" hidden></div>
+      <div id="page-status" class="sr-only" role="status" aria-live="polite"></div>
+
+      <section class="workspace-view" data-view="overview" aria-label="Trading desk">
+        <section id="desk-attention" class="desk-attention" aria-labelledby="desk-attention-title" hidden><h2 id="desk-attention-title">Needs attention</h2><div id="desk-issues"></div></section>
+        <section id="desk-risk-section" class="desk-section" aria-labelledby="desk-risk-title" hidden><h2 id="desk-risk-title">Today’s profit/loss &amp; risk</h2><div id="desk-risk" class="risk-grid"></div><p id="desk-risk-note" class="essential-note"></p></section>
+        <section class="desk-section" aria-labelledby="desk-open-title"><div class="section-heading"><h2 id="desk-open-title">Strategy summary</h2><a class="text-link" href="#deployments">View deployments →</a></div><div id="desk-open"></div></section>
+      </section>
+
+      <section class="workspace-view" data-view="deployments" id="deployments" aria-label="Deployments" hidden>
+        <section class="deployment-page" aria-label="Recorded deployments">
+          <p id="deployments-scope" class="essential-note">Loading recorded deployments…</p>
+          <div id="deployment-list" class="deployment-list"></div>
+        </section>
+      </section>
+
+      <section class="workspace-view" data-view="positions" id="positions-orders" aria-label="Positions and orders" hidden>
+        <nav class="section-links" aria-label="Position tools"><a href="#paper-trading">Open paper order lab →</a></nav>
+        <p id="positions-scope" class="essential-note"></p><div id="position-groups"></div>
+        <section id="orders-section" class="desk-section" aria-labelledby="orders-title" hidden><h2 id="orders-title">Orders</h2><div id="desk-orders"></div></section>
+      </section>
+      <section class="workspace-view" data-view="activity" id="activity" aria-label="Activity" hidden><p id="activity-scope" class="essential-note"></p><div id="desk-activity"></div></section>
+      <section class="workspace-view" data-view="research" id="research" aria-label="Research" hidden>
+        <p class="essential-note research-intro">Historical research and rule checks. These are never positions, fills or live trading.</p>
+        <section class="research-tools" aria-labelledby="research-tools-title">
+          <h2 id="research-tools-title">Research tools</h2>
+          <div class="research-table-wrap" tabindex="0">
+            <table class="research-table"><thead><tr><th>Tool</th><th>Current state</th><th aria-label="Open"></th></tr></thead><tbody>
+              <tr><th scope="row">BANKNIFTY backtest</th><td id="research-backtest-status">No completed backtest saved yet.</td><td><a id="research-backtest-action" class="text-link" href="#past-data-check">Open simulator →</a></td></tr>
+              <tr><th scope="row">Rule checks</th><td><strong><span id="check-count">—</span> saved checks</strong><span id="check-count-note">Loading saved checks…</span></td><td><a class="text-link" href="#safety-checks">Open checks →</a></td></tr>
+              <tr><th scope="row">Saved strategy drafts</th><td><strong><span id="strategy-count">—</span> drafts</strong><span>Fixed BANKNIFTY template</span></td><td><a class="text-link" href="#strategies-heading">Open drafts →</a></td></tr>
+              <tr><th scope="row">Historical data</th><td><strong id="broker-status">Checking…</strong><span id="broker-status-note">Zerodha connection</span></td><td><a class="text-link" href="#kite-connection">Connections →</a></td></tr>
+            </tbody></table>
+          </div>
+        </section>
+        <section class="backtest-history" aria-labelledby="backtest-history-title">
+          <div class="section-heading"><div><h2 id="backtest-history-title">Previous backtests</h2><p id="backtest-history-note" class="section-description">Completed results are saved locally. Open one to review the original report and settings.</p></div></div>
+          <div id="backtest-history"></div>
+        </section>
+      </section>
+
+      <section class="workspace-view" data-view="market-data" aria-label="Connections" hidden>
+        <ol class="setup-steps" aria-label="Connection setup"><li id="setup-details">1. Add app details</li><li id="setup-login">2. Sign in</li><li id="setup-contracts">3. Load contracts</li><li id="setup-prices">4. Start prices</li></ol>
+        <div class="status-strip"><div><span>Broker connection</span><strong id="journey-broker">Checking…</strong></div><div><span>Price freshness</span><strong id="journey-prices">Not checked</strong></div><div><span>Market session</span><strong id="journey-session">Not checked</strong></div></div>
+        <div class="setup-next"><div><h2 id="setup-next-title">Checking setup…</h2><p id="setup-next-note"></p></div><button class="button primary" id="setup-next-action" type="button" disabled>Checking…</button></div>
+        <section class="panel connection-panel" id="kite-connection" aria-labelledby="kite-title">
+          <div class="connection-header"><div><h2 id="kite-title">Connection details</h2><p class="section-description">Historical research works outside market hours. Fresh paper-test prices need an open session.</p></div><div class="connection-actions"><button class="button subtle compact" id="kite-refresh" type="button">Refresh status</button><button class="button secondary compact" id="kite-configure" type="button">Set up connection</button><button class="button secondary compact" id="kite-login" type="button" disabled>Sign in at Zerodha</button></div></div>
+          <div id="kite-error" class="notice error" role="alert" hidden></div>
+          <div class="connection-grid">
+            <div class="connection-state"><div class="section-heading"><h3>Connection</h3><span class="badge quiet" id="kite-status-badge">CHECKING</span></div><p class="connection-message" id="kite-message">Checking the running local app…</p><details class="connection-help"><summary>Session details</summary><dl class="connection-facts"><div><dt>App key</dt><dd id="kite-key-status">Not configured</dd></div><div><dt>Session</dt><dd id="kite-session-status">Not connected</dd></div><div><dt>Credentials</dt><dd id="kite-memory-status">None loaded</dd></div></dl><p class="field-hint">This app requests market data only. Kite credentials may permit broader account access.</p><button class="button secondary compact" id="kite-forget" type="button" aria-describedby="kite-forget-note" hidden>Forget connection details</button><p id="kite-forget-note" class="field-hint" hidden>Clears app memory and removes saved app details; does not revoke the Zerodha session.</p></details></div>
+            <div class="market-data-card"><h3>Instrument list</h3><strong class="data-value" id="kite-instrument-count">Not downloaded</strong><p class="field-hint" id="kite-instruments-note">Available contracts, lot sizes and expiry dates.</p><details class="connection-help"><summary>Contract details</summary><p class="field-hint" id="kite-contract-details" hidden></p></details><button class="button secondary compact" id="kite-sync-instruments" type="button" disabled>Download instrument list</button></div>
+            <div class="market-data-card quote-card"><h3>BANK NIFTY spot</h3><strong class="data-value" id="kite-spot-price">Not fetched</strong><p class="field-hint" id="kite-quote-note">One snapshot, not a live feed.</p><p class="field-hint" id="kite-quote-source">Source: Zerodha Kite Connect</p><button class="button secondary compact" id="kite-fetch-spot" type="button" disabled>Fetch spot quote</button></div>
+          </div>
+          <details class="connection-help"><summary>Connection setup help</summary><p>Set this exact <strong>Redirect URL</strong> in your Kite Connect app settings before signing in:</p><code id="kite-redirect-url">http://127.0.0.1:8765/api/kite/callback</code><p>Enter your API key and secret only in the local setup form, never in chat. Choose Remember to keep them protected by your Windows account across restarts. Zerodha sign-in is still required each day and after an app restart.</p></details>
+        </section>
+        <section class="panel connection-panel" id="tradetron-connection" aria-labelledby="tradetron-title">
+          <div class="connection-header"><div><h2 id="tradetron-title">Tradetron signal bridge</h2><p class="section-description">Sends only portal-approved runtime values to the selected Tradetron deployment. It never sends Zerodha orders.</p></div><div class="connection-actions"><button class="button secondary compact" id="tradetron-configure" type="button">Link Tradetron executor</button></div></div>
+          <div id="tradetron-error" class="notice error" role="alert" hidden></div>
+          <div class="connection-grid"><div class="connection-state"><div class="section-heading"><h3>Executor link</h3><span class="badge quiet" id="tradetron-status-badge">CHECKING</span></div><p class="connection-message" id="tradetron-message">Checking the local executor link…</p><dl class="connection-facts"><div><dt>Strategy</dt><dd id="tradetron-strategy-status">Not linked</dd></div><div><dt>Delivery</dt><dd id="tradetron-delivery-status">Locked</dd></div><div><dt>Storage</dt><dd id="tradetron-storage-status">Not checked</dd></div></dl><button class="button secondary compact" id="tradetron-forget" type="button" hidden>Forget executor link</button></div></div>
+          <p class="essential-note">The portal maps separate call and put entry, exit, and hedge-replacement signals. A successful check confirms that Tradetron accepted those values; the selected Tradetron deployment still controls any execution. This app never sends broker orders.</p>
+        </section>
+        <section class="panel paper-panel" aria-labelledby="stream-title">
+          <div class="section-heading"><h2 id="stream-title">Live prices</h2><span id="stream-badge" class="badge quiet">NOT STARTED</span></div>
+          <p id="stream-summary" class="section-description">Read-only prices for BANK NIFTY and monthly options. No broker orders.</p>
+          <strong id="stream-spot" class="data-value">Waiting for BANK NIFTY</strong><p id="stream-spot-time" class="field-hint">Exchange timestamp will appear with the live price.</p>
+          <div class="paper-actions"><button class="button secondary" id="stream-start" type="button" disabled aria-describedby="stream-blocker">Start price stream</button><button class="button secondary" id="stream-stop" type="button" disabled>Stop stream</button><a class="text-link" href="#paper-trading">Paper order lab →</a></div><p id="stream-blocker" class="essential-note">Complete connection setup first.</p>
+          <div id="stream-error" class="notice error" role="alert" hidden></div>
+          <details class="connection-help"><summary>Stream and calendar details</summary><p id="stream-details"></p><p id="calendar-summary"></p><ul id="calendar-sources"></ul><p id="calendar-limits"></p></details>
+        </section>
+        <a class="text-link" href="#past-data-check">Continue to model simulator →</a>
+      </section>
+
+      <section class="workspace-view" data-view="backtests" aria-label="Model simulator" hidden>
+        <nav class="section-links" aria-label="Research tools"><a href="#research">← Research</a><a href="#research">Previous backtests</a><a href="#safety-checks">Order checks</a></nav>
+        <section class="panel replay-panel" id="past-data-check" aria-labelledby="replay-title">
+          <div class="simulator-hero">
+            <div><h2 id="replay-title">Model simulator</h2><p>BANK NIFTY hourly model · research only</p></div>
+            <div class="simulator-hero-facts" aria-label="Simulator scope"><span>NO ORDERS</span><span>SHARED MODEL</span></div>
+          </div>
+          <div class="replay-layout">
+            <div class="replay-controls">
+              <form id="replay-form">
+                <div class="field"><label for="replay-date">Start date (IST)</label><input id="replay-date" name="start_date" type="date" required aria-describedby="replay-date-note"></div>
+                <div class="field"><label for="strategy-mode">Entry timing</label><select id="strategy-mode"><option value="hour_close_boundary_uncertain_v2">Hour boundary · 10:15</option><option value="hour_close_review_20s_stop_first_v2">20-second review · 10:16</option></select></div>
+                <button class="button primary" id="replay-submit" type="submit" disabled>Run simulation</button><button class="button subtle" id="replay-cancel" type="button" hidden>Stop</button>
+                <div class="simulator-run-meta"><span id="replay-date-note">Up to 5 years, ending at the latest completed session.</span><span>SL & target use the signal hour’s close.</span></div>
+                <details class="model-settings"><summary>Review data, quantities & assumptions</summary><div class="simulator-settings-body"><section class="run-brief" aria-labelledby="run-brief-title"><h3 id="run-brief-title">This run will use</h3><dl><div><dt>Price sources</dt><dd>Recorded Zerodha spot prices. Saved option quotes or candles first; pricing-model estimates when missing.</dd></div><div><dt>Requested dates</dt><dd id="run-date-coverage">Choose a start date. Coverage is checked during the run.</dd></div><div><dt>Option-price coverage</dt><dd id="run-price-coverage">Not checked yet for these settings. The result separates recorded, mixed and estimated prices.</dd></div><div><dt>Run quantities</dt><dd id="run-quantity-summary">4 selling lots per direction; 4 lots per hedge; 30 assumed units per lot.</dd></div><div><dt>Return base</dt><dd id="run-return-base">₹10,00,000 for performance percentages. Planning only, not a margin check.</dd></div><div><dt>Missing data</dt><dd>Skip missing minutes; no invented fills. Empty scheduled days are assumed holidays, not verified closures. Affected results are approximate.</dd></div></dl></section><section class="model-quantity-section" aria-labelledby="run-size-title"><h3 id="run-size-title">Comparison size</h3><p>These quantities apply only to this run. They are not a broker margin check or historical contract sizes.</p><div class="model-quantity-grid"><div class="field"><label for="model-sell-lots">Selling lots / direction</label><input id="model-sell-lots" type="number" min="1" max="100" step="1" value="4" required></div><div class="field"><label for="model-ce-lots">Call hedge lots</label><input id="model-ce-lots" type="number" min="0" max="100" step="1" value="4" required></div><div class="field"><label for="model-pe-lots">Put hedge lots</label><input id="model-pe-lots" type="number" min="0" max="100" step="1" value="4" required></div><div class="field"><label for="model-units">Units per lot · assumed</label><input id="model-units" type="number" min="1" max="10000" step="1" value="30" required></div><div class="field model-return-base-field"><label for="model-return-base">Return base (₹)</label><input id="model-return-base" type="text" inputmode="numeric" pattern="[0-9, ]+" maxlength="17" value="10,00,000" required aria-describedby="model-return-base-note"><p id="model-return-base-note" class="field-hint">Used only for the % in daily and monthly performance. It is not capital, margin or a risk limit.</p></div></div></section><p class="model-rule-note">Fixed 500-point stop and 1,000-point target. No weekly entry cap; each direction is independent. Hour-boundary mode leaves stop/target collisions uncertain. Review mode assumes the stop came first.</p></div></details>
+              </form>
+              <div id="replay-progress" class="replay-progress" hidden><p id="replay-progress-message" role="status">Preparing historical spot data…</p><progress id="replay-progressbar" max="100" aria-label="Current replay step progress"></progress><p class="field-hint">You can leave this section while the backtest runs.</p></div>
+              <div class="replay-connection"><p class="replay-availability" id="replay-availability">Checking Zerodha…</p><a class="text-link" id="replay-connect-link" href="#kite-connection">Connect Zerodha →</a></div>
+              <p id="replay-settings-changed" class="report-inline-warning" role="status" hidden>Settings changed. Run again to update the results below.</p>
+            </div>
+            <div class="replay-output"><div id="replay-error" class="notice error" role="alert" hidden></div><div id="replay-result" hidden></div><div id="replay-empty" class="replay-empty"><div><span class="simulator-kicker">READY WHEN YOU ARE</span><h3>Run a simulation</h3><p>Choose the first date to check. Your core result will appear here; deeper trade and data statistics stay available when you need them.</p><a class="text-link" href="#research">Review a previous backtest →</a></div></div></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="workspace-view" data-view="strategies" aria-label="Strategies" hidden>
+        <div class="strategy-workspace" id="strategy-workspace" data-detail="false">
+          <section class="desk-section strategy-column" aria-labelledby="strategies-heading"><div class="section-heading"><h2 id="strategies-heading">Strategy drafts</h2><span class="small-label" id="draft-count">DRAFTS</span></div><p class="essential-note">Fixed BANKNIFTY hourly templates. Drafts are not deployed positions.</p><div class="strategy-list" id="strategy-list"><p class="loading">Loading your workspace…</p></div></section>
+          <section class="strategy-detail" id="strategy-detail" aria-labelledby="detail-title"><a class="text-link strategy-back" href="#strategies-heading">← Back to strategy drafts</a>
+            <div id="empty-detail" class="empty-state" hidden><h2>Start with a strategy</h2><p>Create a draft with a name, lot count and planned capital.</p><button class="button secondary" id="create-first-strategy" type="button">Create strategy draft</button></div>
+            <div id="detail-content" hidden>
+              <div class="detail-header"><div><div class="detail-kicker"><span class="small-dot amber" aria-hidden="true"></span><span id="detail-status">DRAFT</span></div><h2 id="detail-title" tabindex="-1">Strategy</h2><p id="detail-updated" class="muted"></p></div><button class="button secondary compact" id="edit-strategy" type="button" hidden>Edit details</button></div>
+              <div class="strategy-facts"><div><span class="fact-label">Effective lots / leg</span><strong id="detail-lots">—</strong></div><div><span class="fact-label">Planned capital</span><strong id="detail-capital">—</strong><p>Planning only</p></div><div><span class="fact-label">Status</span><strong id="detail-phase">Draft</strong></div></div>
+              <p id="detail-summary" class="essential-note">Fixed hourly BANKNIFTY rules · 500-point stop · 1,000-point target · monthly hedge rollover.</p>
+              <details class="rules-disclosure detail-section"><summary class="rules-summary">Rules & limitations</summary><p class="section-description">Rule editing is not available for this template.</p><div id="strategy-rules" class="rule-grid"></div></details>
+              <ul id="readiness-list" hidden></ul>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="workspace-view" data-view="paper-trading" id="paper-trading" aria-label="Paper trading" hidden>
+        <nav class="section-links" aria-label="Position tools"><a href="#positions-orders">← Paper positions &amp; orders</a></nav>
+        <section class="panel paper-panel" aria-label="September strategy replay">
+          <div class="paper-actions"><button id="paper-replay-refresh" class="button primary" type="button" disabled aria-describedby="paper-replay-note">Update September positions</button><a class="text-link" href="#kite-connection">Connections →</a></div>
+          <p id="paper-replay-note" class="essential-note">Sign in to update through the latest completed trading session. No orders are placed.</p>
+          <p id="paper-replay-error" class="notice error" role="alert" hidden></p>
+          <div id="paper-replay-positions"></div>
+        </section>
+        <section class="panel paper-panel" aria-labelledby="paper-title">
+          <div class="section-heading"><h2 id="paper-title">Real-quote order test</h2><span class="state-label" id="paper-state">Not started</span></div>
+          <p class="essential-note">One-lot order-sequence test, not automatic strategy trading. Saved drafts are not deployed. No real orders.</p><p class="section-description">Uses fresh buy/sell quotes to simulate each fill, including buying a replacement hedge before selling the old one.</p>
+          <p id="paper-summary" role="status">Loading paper service…</p>
+          <div class="paper-actions"><button class="button primary" id="paper-check" type="button" disabled aria-describedby="paper-summary">Run paper test</button><a class="text-link" id="paper-remedy" href="#kite-connection">Complete connection setup →</a><button class="button secondary" id="paper-pause" type="button" disabled>Pause paper orders</button><button class="button secondary" id="paper-resume" type="button" hidden>Check ledger &amp; resume</button></div>
+          <div id="paper-error" class="notice error" role="alert" hidden></div>
+          <div id="paper-results" aria-live="polite"></div>
+          <p id="paper-valuation" class="field-hint">Paper P&amp;L appears after the first fill.</p>
+          <button class="button secondary" id="paper-close-retained" type="button" disabled aria-describedby="paper-close-note" hidden>Close remaining paper positions · unavailable</button><p id="paper-close-note" class="essential-note" hidden>Recovery cannot yet guarantee that all shorts close before their protection is sold. Closing is disabled; review saved orders and evidence. No automatic management continues after the test stops.</p>
+          <p class="essential-note">Pause paper orders stops this test’s order processing, not just new entries. It does not keep managing open exposure.</p>
+          <details class="connection-help"><summary>Completion checklist</summary><ul id="paper-readiness" class="readiness-list"></ul><p>A passing paper test checks the connection and order handling. It does not validate several trading sessions or enable live trading.</p></details>
+          <details class="connection-help"><summary>Paper ledger and evidence</summary><p id="paper-ledger-summary"></p><div id="paper-positions"></div><button id="paper-evidence" class="button secondary compact" type="button">Download evidence</button><p>Saved locally across restarts. Charges use the dated fee estimate; modelled backtest premiums are not used for these fills.</p></details>
+        </section>
+      </section>
+      <section class="workspace-view" data-view="safety-checks" aria-label="Order checks" hidden>
+        <nav class="section-links" aria-label="Research tools"><a href="#research">← Research</a><a href="#past-data-check">Historical model simulator</a></nav>
+        <section class="panel checks-panel" id="safety-checks" aria-labelledby="checks-title">
+          <div class="section-heading"><h2 id="checks-title">Example order scenarios</h2><span class="badge quiet">EXAMPLE DATA</span></div>
+          <p class="section-description">Check the expected order sequence. No market prices or real orders.</p>
+          <form id="scenario-form"><div class="scenario-controls"><div class="field grow"><label for="check-strategy-select">Strategy</label><select id="check-strategy-select" disabled><option value="">Loading strategies…</option></select></div><div class="field grow"><label for="scenario-select">Situation to check</label><select id="scenario-select" name="scenario_id" required disabled><option value="">Loading situations…</option></select></div><button id="run-check" class="button primary" type="submit" disabled>Run check</button></div><p id="scenario-description" class="field-hint"></p><p id="scenario-strategy" class="sr-only"></p></form>
+          <div id="check-error" class="notice error" role="alert" hidden></div><div id="check-result" class="check-result" aria-live="polite" hidden></div><div id="check-empty" class="check-empty"><p>Choose a situation, then run a check.</p></div>
+          <section class="recent-section" id="recent-section" aria-labelledby="recent-title" hidden><div class="section-heading"><h3 id="recent-title">Recent checks for this strategy</h3></div><div id="recent-runs" class="recent-runs"></div></section>
+        </section>
+      </section>
+      <footer><span>Private Algo Desk</span><span>Research only · No broker orders</span></footer>
+    </main>
+  </div>
+  <dialog id="strategy-dialog" aria-labelledby="dialog-title" aria-describedby="dialog-description">
+    <form id="strategy-form">
+      <div class="dialog-heading"><div><p class="eyebrow">BANKNIFTY TEMPLATE</p><h2 id="dialog-title">Create draft from BANKNIFTY template</h2></div><button class="icon-button" id="close-dialog" type="button" aria-label="Close strategy form">×</button></div>
+      <p id="dialog-description" class="section-description">Save a name, base lots, multiplier and planned capital. The trading rules are fixed; other strategy types come next. No orders are placed.</p><div class="template-preview"><strong>Fixed template rules</strong><p>Hourly spot signals · 500-point stop · 1,000-point target from the signal-hour close · independent CE/PE hedges · monthly rollover.</p></div>
+      <div class="field"><label for="strategy-name">Strategy name</label><input id="strategy-name" name="name" required maxlength="80" autocomplete="off" placeholder="For example, Bank Nifty hourly"></div>
+      <div class="form-grid"><div class="field"><label for="strategy-lots">Base lots / leg</label><input id="strategy-lots" name="lots" type="number" min="1" max="100" step="1" value="1" required aria-describedby="strategy-quantity-note"><p id="strategy-quantity-note" class="field-hint">Effective size is base lots × multiplier. Contract units need the current instrument list.</p></div><div class="field"><label for="strategy-multiplier">Multiplier</label><input id="strategy-multiplier" name="multiplier" type="number" min="1" max="100" step="1" value="1" required aria-describedby="strategy-multiplier-note"><p id="strategy-multiplier-note" class="field-hint" hidden></p></div><div class="field"><label for="strategy-capital">Planned capital (₹)</label><input id="strategy-capital" name="capital" type="text" inputmode="numeric" maxlength="17" value="10,00,000" required aria-describedby="capital-note"><p id="capital-note" class="field-hint">Whole rupees. For planning, not a funds check.</p></div></div>
+      <div id="form-error" class="notice error" role="alert" hidden></div>
+      <div class="dialog-actions"><button class="button secondary" id="cancel-dialog" type="button">Cancel</button><button class="button primary" id="save-strategy" type="submit">Save draft</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="kite-dialog" aria-labelledby="kite-dialog-title" aria-describedby="kite-dialog-description">
+    <form id="kite-config-form" autocomplete="off">
+      <div class="dialog-heading"><div><p class="eyebrow">LOCAL CONNECTION SETUP</p><h2 id="kite-dialog-title">Add your Kite app details</h2></div><button class="icon-button" id="kite-close-dialog" type="button" aria-label="Close Kite setup">×</button></div>
+      <p id="kite-dialog-description" class="section-description">Use your Kite app key and secret—not your trading password. Enter them only here, never in chat.</p>
+      <div class="credential-note">Remember your app details on this Windows account. Daily Zerodha sign-in is still required.</div><details class="connection-help"><summary>How credentials are handled</summary><p>Remember saves an encrypted copy protected by your Windows account, not plain text or browser storage. Without it, details stay in app memory only. Forget connection details removes the saved copy. Programs running as your Windows user may still access these details; use only on a trusted computer. Login tokens are never saved. This app requests market data only and cannot submit broker orders.</p></details>
+      <div class="field"><label for="kite-api-key">API key</label><input id="kite-api-key" name="api_key" type="password" required minlength="6" maxlength="128" autocomplete="off" spellcheck="false" autocapitalize="none" aria-describedby="kite-credential-hint"></div>
+      <div class="field"><label for="kite-api-secret">API secret</label><input id="kite-api-secret" name="api_secret" type="password" required minlength="6" maxlength="128" autocomplete="off" spellcheck="false" autocapitalize="none" aria-describedby="kite-credential-hint"></div>
+      <p id="kite-credential-hint" class="field-hint">Both fields clear when you submit or close this form. Do not save these credentials in your browser.</p>
+      <label class="remember-choice" for="kite-remember"><input id="kite-remember" name="remember" type="checkbox" aria-describedby="kite-remember-note">Remember on this Windows account</label>
+      <p id="kite-remember-note" class="field-hint">Optional. Saves the app key and secret, never your password, one-time code or login token.</p>
+      <p class="field-hint">These credentials may allow more than reading. This app only requests market data and contains no order routes.</p>
+      <div id="kite-form-error" class="notice error" role="alert" hidden></div>
+      <div class="dialog-actions"><button class="button secondary" id="kite-cancel-dialog" type="button">Cancel</button><button class="button primary" id="kite-save-config" type="submit">Continue</button></div>
+    </form>
+  </dialog>
+  <dialog id="tradetron-dialog" aria-labelledby="tradetron-dialog-title" aria-describedby="tradetron-dialog-description">
+    <form id="tradetron-config-form" autocomplete="off">
+      <div class="dialog-heading"><div><p class="eyebrow">PAPER EXECUTOR LINK</p><h2 id="tradetron-dialog-title">Link Tradetron paper executor</h2></div><button class="icon-button" id="tradetron-close-dialog" type="button" aria-label="Close Tradetron setup">×</button></div>
+      <p id="tradetron-dialog-description" class="section-description">Paste the generated API link for your private paper executor. It stays protected by this Windows account and is never shown again.</p>
+      <div class="credential-note">Linking does not deploy the strategy or send a signal. The portal keeps delivery locked until its paper template is verified.</div>
+      <div class="field"><label for="tradetron-strategy-id">Tradetron strategy ID</label><input id="tradetron-strategy-id" name="strategy_id" type="text" inputmode="numeric" required pattern="[0-9]{5,16}" maxlength="16" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label for="tradetron-api-link">Generated API link</label><input id="tradetron-api-link" name="api_link" type="password" required maxlength="1024" autocomplete="off" spellcheck="false" autocapitalize="none" aria-describedby="tradetron-link-hint"></div>
+      <p id="tradetron-link-hint" class="field-hint">Copy it from Tradetron’s API OAuth token window. Do not paste it into chat or save it in a browser.</p>
+      <div id="tradetron-form-error" class="notice error" role="alert" hidden></div>
+      <div class="dialog-actions"><button class="button secondary" id="tradetron-cancel-dialog" type="button">Cancel</button><button class="button primary" id="tradetron-save-config" type="submit">Save protected link</button></div>
+    </form>
+  </dialog>
+  <dialog id="runtime-data-dialog" class="runtime-dialog" aria-labelledby="runtime-data-title" aria-describedby="runtime-data-description">
+    <div class="dialog-heading"><div><p class="eyebrow">LOCAL RUNTIME VIEW</p><h2 id="runtime-data-title">Runtime data</h2></div><button class="icon-button" id="runtime-data-close" type="button" aria-label="Close runtime data">×</button></div>
+    <p id="runtime-data-description" class="section-description"></p>
+    <section class="runtime-section" aria-label="Runtime overview"><div id="runtime-data-overview" class="runtime-facts"></div></section>
+    <section class="runtime-section" aria-label="Call and put runtime inputs"><div id="runtime-data-directions"></div></section>
+    <p id="runtime-data-note" class="runtime-note"></p>
+  </dialog>
+  <dialog id="deployment-statistics-dialog" class="runtime-dialog statistics-dialog" aria-labelledby="statistics-title" aria-describedby="statistics-description">
+    <div class="dialog-heading"><div><p class="eyebrow">LOCAL DEPLOYMENT STATISTICS</p><h2 id="statistics-title">Deployment statistics</h2></div><button class="icon-button" id="statistics-close" type="button" aria-label="Close deployment statistics">×</button></div>
+    <p id="statistics-description" class="section-description"></p>
+    <section class="runtime-section" aria-label="Statistics overview"><div id="statistics-overview" class="runtime-facts"></div></section>
+    <section class="runtime-section" aria-label="Call and put statistics"><div id="statistics-directions"></div></section>
+    <section class="runtime-section" aria-label="Price coverage"><div id="statistics-coverage" class="runtime-facts"></div></section>
+  </dialog>
+</body>
+</html>

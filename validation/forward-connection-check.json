@@ -1,0 +1,25 @@
+{
+  "checked_at_utc": "2026-09-30T15:16:02.889309+00:00",
+  "test_kind": "authenticated_after_hours_read_only_check",
+  "zerodha_connected": true,
+  "instrument_count": 36330,
+  "banknifty_contract_count": 923,
+  "listed_lot_sizes": [30],
+  "listed_expiries": ["2026-10-27", "2026-11-23", "2026-12-29", "2027-03-30", "2027-06-29", "2027-09-28"],
+  "spot_snapshot": {
+    "instrument": "NSE:NIFTY BANK",
+    "last_price": 54633.05,
+    "timestamp": "2026-09-30T17:35:05+05:30",
+    "fetched_at": "2026-09-30T15:15:45.090824+00:00",
+    "fresh_for_paper_fill": false
+  },
+  "stream_start": {
+    "http_status": 400,
+    "error": "The verified exchange session is closed.",
+    "transport_connection_attempted": false
+  },
+  "paper_fill_count": 0,
+  "paper_positions": [],
+  "broker_orders_sent": 0,
+  "real_quote_acceptance": "pending_open_market_session"
+}
